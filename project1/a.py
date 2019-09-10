@@ -54,8 +54,7 @@ def make3Dplot(x, y, z, title=None, name=None, show=True):
         plt.close()
 
 # Plot the surface of the Franke function
-make3Dplot(x,y,z, title="Franke Function", name="franke_func.png")
-
+make3Dplot(x,y,z, title="Franke Function", name="franke_func.png", show=False)
 
 # OLS REGRESSION: fit a polynomial model with x and y up to 5-th order:
 
@@ -81,9 +80,9 @@ def CreateDesignMatrix_X(x, y, n = 2):
 
 # Transform (meshgrid) from matrices to vectors
 x_1 = np.ravel(x)
+n = len(x_1)        # Number of observations (n=k*k, see beginning of program)
 y_1 = np.ravel(y)
-z_1 = np.ravel(z)   #+ np.random.random(n)*1 # Add noise if wanted
-n = len(z_1)        # Number of observations (n=k*k, see beginning of program)
+z_1 = np.ravel(z) + np.random.random(n)*0.01 # Add noise if wanted
 
 # Create the design matrix
 X = CreateDesignMatrix_X(x_1,y_1,n=5)   # n is the degree of the model polynomial 
@@ -96,20 +95,34 @@ z_pred = z_pred.reshape(k,k)        # Make z into appropriate matrix so we can p
 
 # Plot the surface of the predicted values
 make3Dplot(x,y,z_pred, title="Linear regression (Franke function)", 
-                name ="lin_reg_franke_func.png", show=True)
+                name ="lin_reg_franke_func.png", show=False)
+
 
 # SCIKIT (do we want to use it?):
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
+#from sklearn.linear_model import LinearRegression
+#from sklearn.metrics import mean_squared_error, r2_score
 
 
 
 # Find confidence intervals of the betas by computing the variances.
-s2 = (np.linalg.norm(z) - np.linalg.norm(z_pred))**2/(n - p)
-variance_beta = s2*np.linalg.inv(X.T.dot(X))    # Covariance matrix
-beta_var = np.diag(variance_beta)               # Variances of the betas
+s2 = (1/(n-p-1))*np.sum((z-z_pred)**2)                          # Estimate of sigma^2 from Hastia
+s1 = (np.linalg.norm(z) - np.linalg.norm(z_pred))**2/(n - p)    # Sample variance formula from Azzalini
+print(f"s2: {s2}") # Is this one correct to use?
+print(f"s1: {s1}") # Why is this so low? Are they supposed to be the same?
 
-# NB: Someone check that the variances are correct, and make CI's for the betas.
+
+variance_beta = s2*np.linalg.inv(X.T.dot(X))    # Covariance matrix                
+beta_var = np.diag(variance_beta)               # Variances of the betas 
+print(beta_var)
+beta_CIs = []                                   # List to contain the confidence intervals
+
+# Find confidence intervals and print beta values
+print("\nCoefficient estimations \t Confidence interval")
+for i in range(p):
+    beta_CIs.append([beta_var[i]-1.96*np.sqrt(beta_var[i]/n), beta_var[i]+1.96*np.sqrt(beta_var[i]/n)])
+    print(f"Beta_{i:2d} = {beta_var[i]:10.8f} \t\t {beta_CIs[i]}")
+
+# NB: Someone check that the variances and CI's are correct...
 
 
 
@@ -121,7 +134,6 @@ def MSE(z, z_pred):
     mse = (1/len(z))*sum((z-z_pred)**2)
     return mse
 
-
 def R2(z, z_pred):
     """ Function to evaluate the R2-score """
     z = np.ravel(z)
@@ -130,8 +142,8 @@ def R2(z, z_pred):
     r2 = 1 - (sum((z-z_pred)**2)/sum((z - mean)**2))
     return r2
 
-print(f"Mean Squares Error: {MSE(z, z_pred):.5f}")      # NB: Someone check that this value is correct...
-print(f"R2-score: {R2(z, z_pred):.5f}")                 # NB: Someone check that this value is correct...
+print(f"\nMean Squared Error: {MSE(z, z_pred)}")    # NB: Someone check that this value is correct...
+print(f"R2-score: {R2(z, z_pred)}")                 # NB: Someone check that this value is correct...
 
 
 
