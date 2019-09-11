@@ -79,16 +79,16 @@ def CreateDesignMatrix_X(x, y, n = 2):
 	return X
 
 # Transform (meshgrid) from matrices to vectors
-x_1 = np.ravel(x)
-n = len(x_1)        # Number of observations (n=k*k, see beginning of program)
-y_1 = np.ravel(y)
-z_1 = np.ravel(z) + np.random.random(n)*0.01 # Add noise if wanted
+x1 = np.ravel(x)
+n = len(x1)        # Number of observations (n=k*k, see beginning of program)
+y1 = np.ravel(y)
+z1 = np.ravel(z) #+ np.random.random(n)*0.01 # Add noise if wanted
 
 # Create the design matrix
-X = CreateDesignMatrix_X(x_1,y_1,n=5)   # n is the degree of the model polynomial 
+X = CreateDesignMatrix_X(x1,y1,n=5)   # n is the degree of the model polynomial 
 
 # Find beta and predict z-values
-beta = np.linalg.inv((X.T.dot(X))).dot(X.T).dot(z_1)        # MAYBE USE np.linalg.pinv INSTEAD?
+beta = np.linalg.inv((X.T.dot(X))).dot(X.T).dot(z1)        # MAYBE USE np.linalg.pinv INSTEAD?
 p = len(beta)                       # p is the complesity of the model
 z_pred = X @ beta                   # Predicted z values
 z_pred = z_pred.reshape(k,k)        # Make z into appropriate matrix so we can plot it
@@ -98,14 +98,10 @@ make3Dplot(x,y,z_pred, title="Linear regression (Franke function)",
                 name ="lin_reg_franke_func.png", show=False)
 
 
-# SCIKIT (do we want to use it?):
-#from sklearn.linear_model import LinearRegression
-#from sklearn.metrics import mean_squared_error, r2_score
-
 
 
 # Find confidence intervals of the betas by computing the variances.
-s2 = (1/(n-p-1))*np.sum((z-z_pred)**2)                          # Estimate of sigma^2 from Hastia
+s2 = (1/(n-p-1))*np.sum((z - z_pred)**2)                          # Estimate of sigma^2 from Hastia
 s1 = (np.linalg.norm(z) - np.linalg.norm(z_pred))**2/(n - p)    # Sample variance formula from Azzalini
 print(f"s2: {s2}") # Is this one correct to use?
 print(f"s1: {s1}") # Why is this so low? Are they supposed to be the same?
@@ -113,14 +109,15 @@ print(f"s1: {s1}") # Why is this so low? Are they supposed to be the same?
 
 variance_beta = s2*np.linalg.inv(X.T.dot(X))    # Covariance matrix                
 beta_var = np.diag(variance_beta)               # Variances of the betas 
-print(beta_var)
+#print(beta_var)
 beta_CIs = []                                   # List to contain the confidence intervals
 
 # Find confidence intervals and print beta values
+print("\nOLS LINEAR REGRESSION (OWN CODE)")
 print("\nCoefficient estimations \t Confidence interval")
 for i in range(p):
-    beta_CIs.append([beta_var[i]-1.96*np.sqrt(beta_var[i]/n), beta_var[i]+1.96*np.sqrt(beta_var[i]/n)])
-    print(f"Beta_{i:2d} = {beta_var[i]:10.8f} \t\t {beta_CIs[i]}")
+    beta_CIs.append([beta[i]-1.96*np.sqrt(beta_var[i]/n), beta[i]+1.96*np.sqrt(beta_var[i]/n)])
+    print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i]}")
 
 # NB: Someone check that the variances and CI's are correct...
 
@@ -145,6 +142,31 @@ def R2(z, z_pred):
 print(f"\nMean Squared Error: {MSE(z, z_pred)}")    # NB: Someone check that this value is correct...
 print(f"R2-score: {R2(z, z_pred)}")                 # NB: Someone check that this value is correct...
 
+
+# SCIKIT (do we want to use it?):
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+
+# SKIKIT OLS Linear Regression (for comparisom with own code)
+linreg = LinearRegression(fit_intercept=False)
+linreg.fit(X, z1)
+p = len(linreg.coef_)
+
+print("\nOLS LINEAR REGRESSION USING SCKIKIT LEARN")
+print("\nCoefficient estimations \t Confidence interval")
+for i in range(p):
+    print(f"Beta_{i:2d} = {linreg.coef_[i]:12.8f}")
+
+
+z_pred = linreg.predict(X)
+r2 = r2_score(z1, z_pred)
+mse = mean_squared_error(z1, z_pred)
+print(f"\nMean Squared Error: {mse}")
+print(f"R2-score: {r2}")
+
+k = int(np.sqrt(len(z_pred)))
+make3Dplot(x,y,z_pred.reshape(k,k), title="Linear regression with scikit", 
+            name="lin_reg_scikit_franke_func.png", show=False)
 
 
 

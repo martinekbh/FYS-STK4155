@@ -89,24 +89,28 @@ n = len(x1)             # Number of "observations"
 
 X = CreateDesignMatrix_X(x1, y1, n=5)
 
+"""
+# MOVED THIS PART TO a.py
+
 # Do OLS Linear Regression on whole data-set to compare with the results in part a)
-linreg = LinearRegression(fit_intercept=True)
+linreg = LinearRegression(fit_intercept=False)
 linreg.fit(X, z1)
 p = len(linreg.coef_)
 
 for i in range(p):
-    print(linreg.coef_[i]) # Why are these so different from the results in a.py??
+    print(f"Beta_{i:2d} = {linreg.coef_[i]:12.8f}")
 
 
 z_pred = linreg.predict(X)
 r2 = r2_score(z1, z_pred)
 mse = mean_squared_error(z1, z_pred)
+print(f"Mean Squared Error: {mse}")
 print(f"R2-score: {r2}")
-print(f"MSE: {mse}")
 
 k = int(np.sqrt(len(z_pred)))
 make3Dplot(x,y,z_pred.reshape(k,k), title="Linear regression with scikit", 
             name="lin_reg_scikit_franke_func.png", show=False)
+"""
 
 
 # CROSS VALIDATION USING SCIKIT-LEARN:
