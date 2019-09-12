@@ -16,8 +16,8 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 # Make data
-x = np.arange(0, 1, 0.05)   # Numbers on x-axis
-y = np.arange(0, 1, 0.05)   # Numbers on y-axis
+x = np.arange(0, 1, 0.2)   # Numbers on x-axis
+y = np.arange(0, 1, 0.2)   # Numbers on y-axis
 k = len(x)                  # Number of "observations" on each axis  
 x, y = np.meshgrid(x,y)     # Create meshgrid of x and y axes
 
@@ -87,7 +87,7 @@ n = len(x1)             # Number of "observations"
 
 #xy = np.c_[x1,y1]       # Rearrange x and y into (x,y) tuples
 
-X = CreateDesignMatrix_X(x1, y1, n=5)
+X = CreateDesignMatrix_X(x1, y1, n=2)
 
 """
 # MOVED THIS PART TO a.py
@@ -113,10 +113,95 @@ make3Dplot(x,y,z_pred.reshape(k,k), title="Linear regression with scikit",
 """
 
 
+X_train, X_test, z_train, z_test = train_test_split(X,z1, test_size=0.2, random_state=1)
+
+print(f"\nX\n: {X}")
+print(f"\nX_test\n: {X_test}")
+print(f"\nz_test\n: {z_test}")
+
 # CROSS VALIDATION USING SCIKIT-LEARN:
 
 # Split data into traning and test set
-X_train, X_test, z_train, z_test = train_test_split(X,z1, test_size=0.2, random_state=1)
+
+def split_data(X, z, k=5):
+    """
+    Splits data into k groups of equal size
+    """
+    #X_groups = np.split(X)     # This splits matrix, but not randomly
+    #z_groups = np.split(z)     # This splits z, but not randomly
+
+    X_test_sets = []
+    z_test_sets = []
+
+    X_pool = X
+    z_pool = z
+    test_size = int(len(z)/k)
+
+    for i in range(k-1):
+        X_train, X_test, z_train, z_test = train_test_split(X_pool, z_pool, test_size=test_size)
+        X_test_sets.append(X_test)
+        z_test_sets.append(z_test)
+        X_pool = X_train
+        z_pool = z_train
+
+    X_test_sets.append(X_pool) # append last set
+    z_test_sets.append(z_pool)
+
+    return X_test_sets, z_test_sets
+
+
+
+
+
+def k_Cross_Validation(X, z, k=5):
+    """
+    Function that performs k-fold cross validation.
+    X is the design matrix, z is the result variable.
+    """
+    n = len(z) # Number of "observations"
+    i = int(n/k)    # Size of test set
+    X_groups, z_groups = split_data(X, z, k=5)
+
+    # Check that the groups are correct
+    print(f"\nX_groups")
+    print(f"\nz_groups")
+    for i in range(len(z_groups)):
+        print(f"\nGruppe {i}:")
+        print(f"[1, x, y, x^2, xy, y^2] \t\t z-value \t\t FrankeFunction(x,y)")
+        for j in range(len(z_groups)):
+            f = FrankeFunction(X_groups[i][j][1], X_groups[i][j][2])        #test z values
+            print(f"{X_groups[i][j]}\t{z_groups[i][j]}\t{f}")
+
+    # Do cross validation
+    for i in range(len(z_groups)):
+        X_test = X_groups[i]
+        z_test = z_groups[i]
+
+        X_train = np.delete(X_groups, i, axis=0)
+        print(X_train) # NOEN FIKS PAA DIMENSJONENE TIL DENNE MATRISEN!!!
+        z_train = np.delete(z_groups, i)
+
+        beta = np.linalg.inv((X_train.T.dot(X_train)).dot(X_train.T).dot(z_train))
+        p = len(beta)
+        print(beta)
+
+        # FINN MSE OG R2
+    
+    
+    return
+
+k_Cross_Validation(X, z1, k=5)    
+
+
 poly = PolynomialFeatures(degree = 5)
 
 # CROSS VALIDATION USING OWN CODE:
+
+
+
+
+
+
+
+
+
