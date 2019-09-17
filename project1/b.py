@@ -115,13 +115,11 @@ make3Dplot(x,y,z_pred.reshape(k,k), title="Linear regression with scikit",
 
 X_train, X_test, z_train, z_test = train_test_split(X,z1, test_size=0.2, random_state=1)
 
-print(f"\nX\n: {X}")
-print(f"\nX_test\n: {X_test}")
-print(f"\nz_test\n: {z_test}")
+#print(f"\nX\n: {X}")
+#print(f"\nX_test\n: {X_test}")
+#print(f"\nz_test\n: {z_test}")
 
-# CROSS VALIDATION USING SCIKIT-LEARN:
-
-# Split data into traning and test set
+# CROSS VALIDATION:
 
 def split_data(X, z, k=5):
     """
@@ -150,7 +148,20 @@ def split_data(X, z, k=5):
     return X_test_sets, z_test_sets
 
 
+def MSE(z, z_pred):
+    """ Function to evaluate the Mean Squared Error """
+    z = np.ravel(z)
+    z_pred = np.ravel(z_pred)
+    mse = (1/len(z))*sum((z-z_pred)**2)
+    return mse
 
+def R2(z, z_pred):
+    """ Function to evaluate the R2-score """
+    z = np.ravel(z)
+    z_pred = np.ravel(z_pred)
+    mean = (1/len(z))*sum(z)
+    r2 = 1 - (sum((z-z_pred)**2)/sum((z - mean)**2))
+    return r2
 
 
 def k_Cross_Validation(X, z, k=5):
@@ -158,44 +169,64 @@ def k_Cross_Validation(X, z, k=5):
     Function that performs k-fold cross validation.
     X is the design matrix, z is the result variable.
     """
-    n = len(z) # Number of "observations"
-    i = int(n/k)    # Size of test set
-    X_groups, z_groups = split_data(X, z, k=5)
+    print(f"\nPERFORMING {k}-FOLD CROSS VALIDATION:\n")
+    n = len(z)                                          # Number of "observations"
+    i = int(n/k)                                        # Size of test set
+    print(f"Number of observations (n): {n}")
+    print(f"Minimum size of test set: {i}")
+    X_groups, z_groups = split_data(X, z, k)            # Split data into k groups
 
     # Check that the groups are correct
-    print(f"\nX_groups")
-    print(f"\nz_groups")
     for i in range(len(z_groups)):
         print(f"\nGruppe {i}:")
         print(f"[1, x, y, x^2, xy, y^2] \t\t z-value \t\t FrankeFunction(x,y)")
-        for j in range(len(z_groups)):
+        for j in range(len(z_groups[i])):
             f = FrankeFunction(X_groups[i][j][1], X_groups[i][j][2])        #test z values
             print(f"{X_groups[i][j]}\t{z_groups[i][j]}\t{f}")
 
+    mse = []    # List to store the MSEs
+    r2 = []     # List to store the R2-scores
+
     # Do cross validation
     for i in range(len(z_groups)):
+        print(f"\nLinear regression with CV test-group nr. {i}:")
+
         X_test = X_groups[i]
         z_test = z_groups[i]
+        p = len(X_test[1])      # columns in the X matrix i.e. the number of betas
 
-        X_train = np.delete(X_groups, i, axis=0)
-        print(X_train) # NOEN FIKS PAA DIMENSJONENE TIL DENNE MATRISEN!!!
-        z_train = np.delete(z_groups, i)
+        #X_train = np.delete(X_groups, i, axis=0)
 
-        beta = np.linalg.inv((X_train.T.dot(X_train)).dot(X_train.T).dot(z_train))
-        p = len(beta)
-        print(beta)
+        # Create design matrix for training set:
+        X_train = np.zeros((0,p))
+        for group in np.delete(X_groups, i, axis=0):
+            X_train = np.concatenate((X_train, group), axis=0)
 
-        # FINN MSE OG R2
-    
+        # The z-values in the training set:
+        z_train = z_groups[:i] + z_groups[i+1:]     # Pick groups to be in training set
+        z_train = np.concatenate(z_train, axis=0)   # Merge z-values into one array
+
+        print(f"Number of observations in training set: {len(z_train)}")
+        print(f"Dimentions of design matrix for training set: {len(X_train[0])}x{len(X_train)}")
+
+        P = np.linalg.inv(X_train.T.dot(X_train)).dot(X_train.T)
+        beta = P.dot(z_train)
+        print(f"beta = {beta}")
+
+        z_pred = X_test @ beta              # Test model on test data
+        mse.append(MSE(z_test, z_pred))     # MSE
+        r2.append(R2(z_test, z_pred))       # R2-score
+        print(f"MSE = {mse[i]}\nR2 = {r2[i]}")
+
     
     return
 
-k_Cross_Validation(X, z1, k=5)    
+k_Cross_Validation(X, z1, k=2)    
 
 
-poly = PolynomialFeatures(degree = 5)
+#poly = PolynomialFeatures(degree = 5)
 
-# CROSS VALIDATION USING OWN CODE:
+# CROSS VALIDATION USING SCIKIT?
 
 
 
