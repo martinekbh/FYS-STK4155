@@ -111,7 +111,7 @@ print(mse)
 
 # CROSS VALIDATION
 k=5
-kfold = KFold(n_splits=k, shuffle=True, random_state=1)
+kfold = KFold(n_splits=k, shuffle=True, random_state=1001)
 
 #Two clumsy lines to get the size of y_pred array right
 X_trainz, X_testz, z_trainz, z_testz = train_test_split(x1,z1,test_size=1./k)
@@ -165,11 +165,13 @@ for deg in degrees:
         #z_train_pred[:,j] = fit.predict(X_train)
 
         z_pred_train = fit.predict(X_train)
-        train_error += np.mean((z_train - z_pred_train)@(z_train - z_pred_train).T)
+        #train_error += np.mean((z_train - z_pred_train)@(z_train - z_pred_train).T)
+        train_error += ((z_train - z_pred_train) @ (z_train - z_pred_train).T)/len(z_train)
 
         z_p = fit.predict(X_test)
         z_pred[:,j] = fit.predict(X_test)
-        error += np.mean((z_test - z_p)@(z_test - z_p).T) 
+        #error += np.mean((z_test - z_p)@(z_test - z_p).T) 
+        error += ((z_test - z_p) @ (z_test - z_p).T)/len(z_test)
         vari += np.var(z_p)
 
         #errCV.append(mean_squared_error(z_test, z_pred[:,j]))
