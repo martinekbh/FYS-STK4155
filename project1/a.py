@@ -24,11 +24,11 @@ def FrankeFunction(x,y):
 z = FrankeFunction(x, y)    # Our z-values
 
 # Function for making plot
-def make3Dplot(x, y, z, title=None, name=None, show=True):
+def make3Dplot(x, y , z, title=None, name=None, size=(16,12),  show=True):
     """
     Function for making 3D plot. x, y, and z must be np.meshgrid
     """
-    fig = plt.figure(figsize=(16,12))
+    fig = plt.figure(figsize=size)
     ax = fig.gca(projection='3d')
 
     surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm,
@@ -53,11 +53,48 @@ def make3Dplot(x, y, z, title=None, name=None, show=True):
     else:
         plt.close()
 
+
+
+def make3Dplot_multiple(x, y, zlist, title=None, name=None, size=(25,10), show=True):
+    """
+    Function for making a plot with multiple 3D subplots. x and z must be np.meshgrid.
+    y is a list of np.meshgrids.
+    """
+    fig = plt.figure(figsize=size)
+
+    for i in range(len(zlist)):
+        ax = fig.add_subplot(1,len(zlist),i+1, projection='3d')       # Create subplot
+        #fig.add_axes([0.5 , 0.1, 0.4, 0.8])
+        #ax = fig.gca(projection='3d')       # Get axes of current subplot
+        surf = ax.plot_surface(x, y, zlist[i], cmap=cm.coolwarm, linewidth=0, antialiased=False) # The surface
+
+
+        # Customize the z axis.
+        ax.set_zlim(-0.10, 1.40)
+        ax.zaxis.set_major_locator(LinearLocator(10))
+        ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+
+
+        plt.xlabel("x-axis")
+        plt.ylabel("y-axis")
+
+        if title:
+            plt.title(title[i])
+    
+        # Add a color bar which maps values to colors.
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+
+    if name:
+        plt.savefig(name)
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
 # Plot the surface of the Franke function
 make3Dplot(x,y,z, title="Franke Function", name="franke_func.png", show=False)
 
 # OLS REGRESSION: fit a polynomial model with x and y up to 5-th order:
-
 def CreateDesignMatrix_X(x, y, n = 2):
 	"""
 	Function for creating a design X-matrix with rows [1, x, y, x^2, xy, xy^2 , etc.]
@@ -82,7 +119,7 @@ def CreateDesignMatrix_X(x, y, n = 2):
 x1 = np.ravel(x)
 n = len(x1)        # Number of observations (n=k*k, see beginning of program)
 y1 = np.ravel(y)
-z1 = np.ravel(z) #+ np.random.random(n)*0.01 # Add noise if wanted
+z1 = np.ravel(z) + np.random.random(n)*0.01 # Add noise if wanted
 
 # Create the design matrix
 X = CreateDesignMatrix_X(x1,y1,n=5)   # n is the degree of the model polynomial 
@@ -97,8 +134,10 @@ z_pred = z_pred.reshape(k,k)        # Make z into appropriate matrix so we can p
 make3Dplot(x,y,z_pred, title="Linear regression (Franke function)", 
                 name ="lin_reg_franke_func.png", show=False)
 
-
-
+# Plot surface of predicted values and of real z-values in one figure
+make3Dplot_multiple(x,y,(z, z_pred.reshape(k,k)), 
+                    title=("Plot of real Franke function", "Plot of z-predictions based on linear model"),
+                    name="franke_func_vs_linear_model.png", size=(25,10), show=False)
 
 # Find confidence intervals of the betas by computing the variances.
 s2 = (1/(n-p-1))*np.sum((z - z_pred)**2)                          # Estimate of sigma^2 from Hastia
@@ -143,7 +182,7 @@ print(f"\nMean Squared Error: {MSE(z, z_pred)}")    # NB: Someone check that thi
 print(f"R2-score: {R2(z, z_pred)}")                 # NB: Someone check that this value is correct...
 
 
-# SCIKIT (do we want to use it?):
+# SCIKIT:
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -158,15 +197,30 @@ for i in range(p):
     print(f"Beta_{i:2d} = {linreg.coef_[i]:12.8f}")
 
 
-z_pred = linreg.predict(X)
-r2 = r2_score(z1, z_pred)
-mse = mean_squared_error(z1, z_pred)
+z_pred_scikit = linreg.predict(X)
+r2 = r2_score(z1, z_pred_scikit)
+mse = mean_squared_error(z1, z_pred_scikit)
 print(f"\nMean Squared Error: {mse}")
 print(f"R2-score: {r2}")
 
-k = int(np.sqrt(len(z_pred)))
-make3Dplot(x,y,z_pred.reshape(k,k), title="Linear regression with scikit", 
+k = int(np.sqrt(len(z_pred_scikit)))
+z_pred_scikit = z_pred_scikit.reshape(k,k)
+make3Dplot_multiple(x,y,(z_pred, z_pred_scikit), title=("Linear regression with own code","Linear regression with scikit"), 
             name="lin_reg_scikit_franke_func.png", show=False)
 
 
+
+# TEST OTHER METHOD OF ORGANIZING THE DATA
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
+
+xy = np.concatenate((x1.reshape(len(x1),1), y1.reshape(len(x1), 1)), axis=1)
+linreg = make_pipeline(PolynomialFeatures(degree=3), LinearRegression(fit_intercept=False))
+linreg.fit(xy, z1)
+z_pred = linreg.predict(xy)
+mse = mean_squared_error(z1, z_pred)
+r2 = r2_score(z1, z_pred)
+print("\nTest:")
+print(f"MSE : {mse}")
+print(f"R2: {r2}")
 
