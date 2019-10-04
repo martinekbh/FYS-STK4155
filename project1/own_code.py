@@ -194,12 +194,16 @@ def k_Cross_Validation(X, z, k=5):
 def make3Dplot(x, y , z, title=None, name=None, size=(16,12),  show=True):
     """
     Function for making 3D plot of a function f(x,y)=z. 
-    x, y, and z must be np.meshgrid
+    x, y, and z must be np.meshgrid, or one dimentional arrays.
     """
     fig = plt.figure(figsize=size)
     ax = fig.gca(projection='3d')
 
-    surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm,
+    if len(z.shape) == 1: # If z is not meshgrid
+        surf = ax.plot_trisurf(x, y, z, cmap=cm.coolwarm, linewidth = 0,
+                            antialiased=False)
+    else:
+        surf = ax.plot_surface(x, y, z, cmap=cm.coolwarm,
                            linewidth=0, antialiased=False)
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")

@@ -127,6 +127,12 @@ z_test = FrankeFunction(x_test, y_test)
 beta = np.linalg.pinv(X_train.T @ X_train) @ X_train.T @ z_train
 z_pred = X_test @ beta
 
+# plot
+#ax = plt.axes(projection='3d')
+#ax.plot_trisurf(x_test, y_test, z_pred, cmap=cm.coolwarm)
+make3Dplot(x_test, y_test, z_pred, title="Linear regression model on 20% training set")
+
+
 mse = (1/len(z_test))*((z_test - z_pred).T @ (z_test - z_pred))
 #mse = np.mean((z_test - z_pred)**2)
 print("\nLINEAR REGRESSION WITH 80% TRAINING DATA AND 20% TEST DATA:")
@@ -284,7 +290,7 @@ def part_b():
 
 
 
-part_b()
+#part_b()
 
 
 
