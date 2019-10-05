@@ -5,7 +5,7 @@ from random import random, seed
 
 # Import scikit regression tools
 from sklearn.model_selection import train_test_split, cross_validate, KFold, cross_val_score
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
@@ -30,7 +30,8 @@ z = FrankeFunction(x,y)     # The z-values
 x1 = np.ravel(x)            # Flatten to vector
 n = len(x1)                 # Number of observations (n=k*k)
 y1 = np.ravel(y)
-z1 = np.ravel(z) #+ np.random.random(n)*0.01     # Add noise if wanted
+np.random.seed(1001)
+z1 = np.ravel(z) + np.random.normal(0, .25, n)    # Add noise if wanted
 
 """
 Part a) Linear Regression 
@@ -39,7 +40,6 @@ def part_a():
 
     # ---LINREAR REGRESSION---
     X = CreateDesignMatrix_X(x1, y1, d=5)
-    #beta = np.linalg.pinv((X.T.dot(X))).dot(X.T).dot(z1)        
     beta = np.linalg.pinv(X.T @ X) @ X.T @ z1
     p = len(beta)                       # p is the complexity of the model
     z_pred = X @ beta                   # Predicted z values
@@ -61,9 +61,9 @@ def part_a():
     # ---MAKE CONFIDENCE INTERVALS---
     # Estimate of the variance of error
     s2 = (1/(n-p-1))*np.sum((z1 - z_pred)**2)                        # Estimate of sigma^2 from Hastia
-    s1 = (np.linalg.norm(z) - np.linalg.norm(z_pred))**2/(n - p)    # Sample variance formula from Azzalini
+    #s1 = (np.linalg.norm(z) - np.linalg.norm(z_pred))**2/(n - p)    # Sample variance formula from Azzalini
     print(f"s2: {s2}") # Is this one correct to use?
-    print(f"s1: {s1}") # Why is this so low? Are they supposed to be the same?
+    #print(f"s1: {s1}") # Why is this so low? Are they supposed to be the same?
 
 
     # Computing the variances.
@@ -111,164 +111,62 @@ def part_a():
 
     return
 
-#part_a()
 
 """
 Part b) Resampling of data and Cross-validation
 """
-# ---SPLIT DATA IN TRAIN/TEST SETS AND PERFORM LINEAR REGRESSION---
-test_size = 0.2     # size of test-set (in percentage)
-x_train, x_test, y_train, y_test = train_test_split(x1, y1, test_size=test_size, random_state=1)
-X_train = CreateDesignMatrix_X(x_train, y_train, d=5)
-X_test = CreateDesignMatrix_X(x_test, y_test, d=5)
-z_train = FrankeFunction(x_train, y_train)
-z_test = FrankeFunction(x_test, y_test)
-
-beta = np.linalg.pinv(X_train.T @ X_train) @ X_train.T @ z_train
-z_pred = X_test @ beta
-
-# plot
-#ax = plt.axes(projection='3d')
-#ax.plot_trisurf(x_test, y_test, z_pred, cmap=cm.coolwarm)
-make3Dplot(x_test, y_test, z_pred, title="Linear regression model on 20% training set")
-
-
-mse = (1/len(z_test))*((z_test - z_pred).T @ (z_test - z_pred))
-#mse = np.mean((z_test - z_pred)**2)
-print("\nLINEAR REGRESSION WITH 80% TRAINING DATA AND 20% TEST DATA:")
-print(f"mse formula = {mse}")
-print(f"mse scikit = {mean_squared_error(z_test, z_pred)}")
-print(f"MSE = {MSE(z_test, z_pred)}\nR2 = {R2(z_test, z_pred)}")
 
 
 # ---CROSS VALIDATION---
-
-def k_folds(n, k=5, seed = None):
-    """
-    Returns a list with k lists of indexes to be used for test-sets in
-    cross-validation. The indexes range from 0 to n, and are randomly distributed
-    to the k groups s.t. the groups do not overlap
-    """
-    indexes = np.arange(n)
-
-    if seed != None:
-        np.random.seed(seed)
-    np.random.shuffle(indexes)
-
-    min_size = int(n/k)
-    extra_points = n % k
-
-    folds = []
-    start_index = 0
-    for i in range(k):
-        if extra_points > 0:
-            test_indexes = indexes[start_index: start_index + min_size + 1]
-            extra_points -= 1
-            start_index += min_size + 1
-        else:
-            test_indexes = indexes[start_index: start_index + min_size]
-            start_index += min_size
-        folds.append(test_indexes)
-    return folds
-
-
-def k_Cross_Validation(x, y, z, k=5, d=3, seed = None):
-    """
-    Function that performs k-fold cross-validation with Linear regression
-    on data x, y, z=f(x, y) for some function f that we are trying to model.
-    d specifies the polynomial degree of the linear model.
-        - x, y and z are arrays. k is an integer with default 5. d is an 
-        integer with default 3.
-    """
-
-    error_test = []
-    error_train = []
-    bias2 = []
-    variance = []
-    r2 = []
-
-    n = len(z)              # Number of "observations"
-    i = int(n/k)            # Size of test set
-    print(f"\nPERFORMING {k}-FOLD CROSS VALIDATION:")
-    print(f"Number of observations (n): {n}")
-    print(f"Minimum size of test set: {i}")
-    print(f"Degree of the polynomial: {d}")
-
-    test_folds = k_folds(n, k=k, seed=seed)
-    #model = make_pipeline(PolynomialFeatures(degree=d), LinearRegression(fit_intercept=False))
-
-    z_pred_test_average = np.zeros(i)
-    
-    for indexes in test_folds:
-        m = len(indexes)
-        x_test = x[indexes]
-        y_test = y[indexes]
-        z_test = z[indexes]
-        #z_test = FrankeFunction(x_test, y_test)
-        x_train = x[np.delete(np.arange(n), indexes)]
-        y_train = y[np.delete(np.arange(n), indexes)]
-        z_train = z[np.delete(np.arange(n), indexes)]
-        #z_train = FrankeFunction(x_train, y_train)
-
-        X_test = CreateDesignMatrix_X(x_test, y_test, d=d)
-        X_train = CreateDesignMatrix_X(x_train, y_train, d=d)
-
-        beta = np.linalg.pinv(X_train.T @ X_train) @ X_train.T @ z_train
-        z_pred_test = X_test @ beta
-        z_pred_train = X_train @ beta
-        z_pred_test_average += z_pred_test/k
-        #fit = model.fit(X_test, z_test)
-        #z_pred_test = fit.predict(X_test)
-        #fit = model.fit(X_train, z_train)
-        #z_pred_train = fit.predict(X_train)
-
-
-        error_test.append(sum((z_test - z_pred_test)**2)/len(z_test))
-        error_train.append(sum((z_train - z_pred_train)**2)/len(z_train))
-        #error_test.append(((z_test - z_pred_test)@(z_test - z_pred_test).T)/len(z_pred))
-        #error_train.append(((z_train - z_pred_train)@(z_train - z_pred_train).T)/len(z_pred))
-        r2.append(R2(z_test, z_pred_test))
-        #variance.append(np.var(z_pred_test))
-        #bias2.append((z_test - np.mean(z_pred_test))**2)
-    
-    #bias = numpy.linalg.norm() 
-
-    test_err = np.mean(error_test)
-    train_err = np.mean(error_train)
-    bias = np.mean(bias2)
-    var = np.mean(variance)
-    r2_score = np.mean(r2)
-
-    return test_err, train_err, bias, var, r2_score
-    
-
 def part_b():
-    test_err, train_err, bias, var, r2_score = k_Cross_Validation(x1, y1, z1)
-    print(test_err, train_err)
+
+    # ---SPLIT DATA IN TRAIN/TEST SETS AND PERFORM LINEAR REGRESSION---
+    test_size = 0.2     # size of test-set (in percentage)
+    #x_train, x_test, y_train, y_test = train_test_split(x1, y1, test_size=test_size, random_state=1)
+    test_inds, train_inds = test_train_index(n, test_size=test_size)
+
+    x_train = x1[train_inds]
+    x_test = x1[test_inds]
+    y_train = y1[train_inds]
+    y_test = y1[test_inds]
+    z_train = z1[train_inds]
+    z_test = z1[test_inds]
+
+    X_train = CreateDesignMatrix_X(x_train, y_train, d=5)
+    X_test = CreateDesignMatrix_X(x_test, y_test, d=5)
+
+    beta = np.linalg.pinv(X_train.T @ X_train) @ X_train.T @ z_train
+    z_pred = X_test @ beta
+
+    # Plot
+    make3Dplot(x_test, y_test, z_pred, title="Linear regression with 80% training data and 20% test data",
+                    name="linreg-traintestsplit-20percent-plot.png", show=False)
+
+
+    mse = (1/len(z_test))*((z_test - z_pred).T @ (z_test - z_pred))
+    #mse = np.mean((z_test - z_pred)**2)
+    print("\nLINEAR REGRESSION WITH 80% TRAINING DATA AND 20% TEST DATA:")
+    print(f"mse formula = {mse}")
+    print(f"mse scikit = {mean_squared_error(z_test, z_pred)}")
+    print(f"MSE = {MSE(z_test, z_pred)}\nR2 = {R2(z_test, z_pred)}")
+
 
     # ---MAKE PLOT OF ERROR VS. DEGREE OF POLYNOMIAL---
-    maxdegree = 30
+    maxdegree = 20
     degrees = np.arange(1, maxdegree+1)
 
     test_err_results = []
     train_err_results = []
-    bias_results = []
-    variance_results = []
     r2_score_results = []
 
     for deg in degrees:
-        test_err, train_err, bias, var, r2_score = k_Cross_Validation(x1, y1, z1, d=deg, seed = 1001)
+        test_err, train_err, r2 = k_Cross_Validation(x1, y1, z1, d=deg)
         test_err_results.append(test_err)
         train_err_results.append(train_err)
-        bias_results.append(bias)
-        variance_results.append(var)
-        r2_score_results.append(r2_score)
+        r2_score_results.append(r2)
 
-        print('\nPolynomial degree:', deg)
         print('Error:', test_err)
-        print('Bias^2:', bias)
-        print('Var:', var)
-        print(f'{test_err:.4f} >= {bias:.4f} + {var:.4f} = {bias+var:.4f}')
+        print('Train Error:', train_err)
 
     # Plot
     # Plot test-error and train-error
@@ -276,26 +174,334 @@ def part_b():
     plt.plot(degrees, test_err_results, 'k', label='Test MSE')
     plt.plot(degrees, train_err_results, 'b', label='Train MSE')
     plt.legend()
+    plt.xlabel('degree of polynomial')
+    plt.ylabel('error')
     save_fig('train-test-error-plot.png')
+    plt.title('training and test error vs. polynomial degree')
     plt.show()
 
-    # Plots bias-variane-mse
-    plt.figure()
-    plt.plot(degrees, bias_results, label = 'bias^2')
-    plt.plot(degrees, variance_results, label = 'variance')
-    plt.plot(degrees, test_err_results, label = 'error')
+    return
+
+
+
+
+"""
+Part c) BIAS-VARIANCE PLOT NOT WORKING YET
+"""
+
+def part_c():
+    maxdegree = 20
+    degrees = np.arange(1, maxdegree+1)
+
+    """
+    maxdegree = 30
+    degrees = np.arange(1, maxdegree+1)
+
+    mse = []
+    bias2 = []
+    variance = []
+
+    for deg in degrees:
+        test_size = 0.2     # size of test-set (in percentage)
+        test_indexes, train_indexes = test_train_index(n, test_size=test_size, seed=1)
+        x_train = x1[train_indexes]
+        x_test = x1[test_indexes]
+        y_train = y1[train_indexes]
+        y_test = y1[test_indexes]
+        z_train = z1[train_indexes]
+        z_test = z1[test_indexes]
+        #z_train = FrankeFunction(x_train, y_train)
+        z_true = FrankeFunction(x_test, y_test)
+
+        X_train = CreateDesignMatrix_X(x_train, y_train, d=deg)
+        X_test = CreateDesignMatrix_X(x_test, y_test, d=deg)
+
+        beta = np.linalg.pinv(X_train.T @ X_train) @ X_train.T @ z_train
+        z_pred = X_test @ beta
+
+
+        #bi = (1/len(z_test))*sum((z_test - np.mean(z_pred))**2)
+        bi = np.mean((z_true - np.mean(z_pred))**2)
+        var = np.mean((z_pred - np.mean(z_pred))**2)
+        mse.append(mean_squared_error(z_test, z_pred))
+        bias2.append(bi)
+        variance.append(var)
+
+    plt.plot(degrees, mse, label='MSE')
+    plt.plot(degrees, bias2, label='bias^2')
+    plt.plot(degrees, variance, label='Var')
     plt.legend()
-    save_fig('bias-variance-plot.png')
+    plt.show()
+    """
+
+    return
+
+
+
+"""
+Part d) Ridge
+"""
+
+def part_d():
+
+    print(f"\nRIDGE REGRESSION ANALYSIS")
+    n_lambdas = 80
+    lambdas = np.logspace(-4,0, n_lambdas)
+    maxdegree = 15
+    degrees = np.arange(1, maxdegree+1)
+    k = 5
+
+    mse_scores = np.zeros((maxdegree, n_lambdas)) # Matrix to save the mse-scores
+
+    i=0
+    for deg in degrees:
+        j=0
+        for lmb in lambdas:
+            test_err, train_err, r2 = k_Cross_Validation(x1, y1, z1, k=k, d=deg, reg_method='Ridge', lmb=lmb)
+            mse_scores[i,j] = test_err
+            j += 1
+        i += 1
+
+    min_MSE = mse_scores.min()
+    min_index = np.where(mse_scores == min_MSE)
+    deg_ind, lmb_ind = tuple(i.item() for i in min_index)
+    opt_lambda = lambdas[lmb_ind]
+    opt_degree = degrees[deg_ind]
+
+    print(f"Best MSE: {min_MSE}")
+    print(f"with lambda={opt_lambda}, and degree={opt_degree}")
+
+    # Plot
+    im = plt.imshow(mse_scores, cmap=plt.cm.RdBu, extent = [lambdas[0], lambdas[-1], degrees[-1], degrees[0]],
+                interpolation=None, aspect='auto')
+    plt.colorbar(im)
+    plt.xlabel('lambda')
+    plt.ylabel('degree of polynomial')
+    plt.title('MSE colormap (Ridge)')
     plt.show()
 
 
+    # ---RIDGE REGRESSION with optimal parameters---
+    X = CreateDesignMatrix_X(x1, y1, d=opt_degree)
+    XTX = X.T @ X
+    dim = len(XTX)
+    W = np.linalg.pinv(XTX + opt_lambda*np.identity(dim))
+    beta = W @ X.T @ z1
+    p = len(beta)                       # p is the complexity of the model
+    z_pred = X @ beta                   # Predicted z values
 
+
+    # ---MAKE CONFIDENCE INTERVALS FOR THE BETAS---
+    # Estimate of the variance of error
+    s2 = (1/(n-p-1))*np.sum((z1 - z_pred)**2)                        # Estimate of sigma^2 from Hastia
+    #s1 = (np.linalg.norm(z) - np.linalg.norm(z_pred))**2/(n - p)    # Sample variance formula from Azzalini
+    print(f"s2: {s2}") # Is this one correct to use?
+    #print(f"s1: {s1}") # Why is this so low? Are they supposed to be the same?
+
+
+    # Computing the variances.
+    variance_beta = s2*(W @ XTX @ W.T)              # Covariance matrix                
+    beta_var = np.diag(variance_beta)               # Variances of the betas 
+    beta_CIs = []                                   # List to contain the confidence intervals
+
+    # Find confidence intervals and print beta values
+    print("\nRIDGE REGRESSION ON WHOLE DATASET WITH OPTIMAL PARAMETERS")
+    print(f"Lambda = {opt_lambda:.6f}, polynomial degree= = {opt_degree}")
+    print("\nCoefficient estimations \t Confidence interval")
+    for i in range(p):
+        beta_CIs.append([beta[i]-1.96*np.sqrt(beta_var[i]/n), beta[i]+1.96*np.sqrt(beta_var[i]/n)])
+        print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i]}")
+
+    return
+
+
+
+"""
+Part e) Lasso
+"""
+
+def part_e():
+
+    print(f"\nLASSO ANALYSIS")
+    n_lambdas = 80
+    lambdas = np.logspace(-4,0, n_lambdas)
+    maxdegree = 15
+    degrees = np.arange(1, maxdegree+1)
+    k = 5
+
+    mse_scores = np.zeros((maxdegree, n_lambdas)) # Matrix to save the mse-scores
+
+    i=0
+    for deg in degrees:
+        j=0
+        for lmb in lambdas:
+            test_err, train_err, r2 = k_Cross_Validation(x1, y1, z1, k=k, d=deg, reg_method='Lasso', lmb=lmb)
+            mse_scores[i,j] = test_err
+            j += 1
+        i += 1
+
+    min_MSE = mse_scores.min()
+    min_index = np.where(mse_scores == min_MSE)
+    deg_ind, lmb_ind = tuple(i.item() for i in min_index)
+    opt_lambda = lambdas[lmb_ind]
+    opt_degree = degrees[deg_ind]
+
+    print(f"Best MSE: {min_MSE}")
+    print(f"with lambda={opt_lambda}, and degree={opt_degree}")
+
+    # Plot
+    im = plt.imshow(mse_scores, cmap=plt.cm.RdBu, extent = [lambdas[0], lambdas[-1], degrees[-1], degrees[0]],
+                interpolation=None, aspect='auto')
+    plt.colorbar(im)
+    plt.xlabel('lambda')
+    plt.ylabel('degree of polynomial')
+    plt.title('MSE colormap (Lasso)')
+    plt.show()
+
+    # ---LASSO REGRESSION with optimal parameters---
+    X = CreateDesignMatrix_X(x1, y1, d=opt_degree)
+    lasso = Lasso(alpha=opt_lambda, fit_intercept=False, tol=0.001, max_iter=10e6)
+    lasso.fit(X, z1)
+    z_pred = lasso.predict(X)
+
+    print(f"\nLASSO REGRESSION ON WHOLE DATASET WITH OPTIMAL PARAMETERS")
+    print(f"MSE: {MSE(z1, z_pred)}")
+    print(f"R2: {R2(z1, z_pred)}")
+
+
+
+    """
+    X = CreateDesignMatrix_X(x1, y1, d=5)
+    X_train, X_test, z_train, z_test = train_test_split(X,z1, test_size=0.2, random_state=1)
+
+    #Scikits lasso with lambda/alpha value of our choice
+    clf = Lasso(alpha=0.2, fit_intercept=False)
+    lasso = clf.fit(X_train, z_train)
+
+    z_pred = lasso.predict(X_test)
+    r2 = R2(z_test, z_pred)
+    mse = mean_squared_error(z_test, z_pred)
+
+    print(f"\nLASSO REGRESSION WITH 80% TRAINING AND 20% TEST DATA:")
+    print(f"Mean Squared Error: {mse}")
+    print(f"R2-score: {r2}")
+
+    # ---Cross validation to determine optimal lambda---
+    n_lambdas = 500 # Number of lambdas
+    k = 5           # Number of folds in the cross validation
+    d = 10           # Degree of polynomial
+    lambdas = np.logspace(-4,4, n_lambdas)      # Lambdas
+    mse_scores = np.zeros((n_lambdas, k))       # Matrix to save the MSE-scores in
+
+    for i in range(n_lambdas):
+        #mse, train_err, r2_score = k_Cross_Validation(x1, y1, z1, k=k, reg_method='Lasso', lmb=lambdas[i])
+        #mse_scores[i,:] = mse
+
+        # Do CV
+        model = Lasso(alpha=lambdas[i], max_iter=10e5, tol=0.001, fit_intercept=True, normalize=True)
+        j=0
+        for indexes in k_folds(n, k=k):
+            x_test = x1[indexes]
+            y_test = y1[indexes]
+            z_test = z1[indexes]
+            x_train = x1[np.delete(np.arange(n), indexes)]
+            y_train = y1[np.delete(np.arange(n), indexes)]
+            z_train = z1[np.delete(np.arange(n), indexes)]
+
+            X_test = CreateDesignMatrix_X(x_test, y_test, d=d)
+            X_train = CreateDesignMatrix_X(x_train, y_train, d=d)
+
+            X_test = X_test[:,1:]
+            X_train = X_train[:,1:]
+
+            fit = model.fit(X_train, z_train)
+            z_pred_train = fit.predict(X_train)
+            z_pred_test = fit.predict(X_test)
+
+            #mse_scores[i,j] = np.sum((z_pred_test - z_test)**2)/np.size(z_pred_test)
+            mse_scores[i,j] = MSE(z_pred_test, z_test)
+            j+=1
+
+
+    estimated_mse_CV = np.mean(mse_scores, axis=1) 
+
+    plt.plot(np.log10(lambdas), estimated_mse_CV, label='mse')
+    plt.xlabel('log10(lambda)')
+    plt.ylabel('MSE')
+    plt.title(f"MSE vs. lambda (Lasso regression with degree {d})")
+    plt.legend()
+    plt.show()
+    """
+
+    return
+
+
+
+"""
+Other stuff
+"""
+
+def mse_lambda_plot():
+
+    n_lambdas = 500
+    lambdas = np.logspace(-5,6,n_lambdas)
+    d = 5
+    k = 5
+
+    mse_scores = []
+    mse_train_scores = []
+
+    mse_scores_lasso = []
+    mse_train_scores_lasso = []
+
+    r2_ridge = []
+    r2_lasso = []
+    r2_ols = []
+
+    test_err, train_err, r2 = k_Cross_Validation(x1, y1, z1, k=k, d=d)
+    r2_lin = test_err
+
+
+    for lmb in lambdas:
+        r2_ols.append(r2_lin)
+
+        test_err, train_err, r2 = k_Cross_Validation(x1, y1, z1, k=k, d=d, reg_method='Ridge', lmb=lmb)
+        mse_scores.append(test_err)
+        mse_train_scores.append(train_err)
+        r2_ridge.append(r2)
+        test_err, train_err, r2 = k_Cross_Validation(x1, y1, z1, k=k, d=d, reg_method='Lasso', lmb=lmb)
+        mse_scores_lasso.append(test_err)
+        mse_train_scores_lasso.append(train_err)
+        r2_lasso.append(r2)
+
+    
+    plt.plot(np.log10(lambdas), mse_scores, label='MSE test Ridge')
+    plt.plot(np.log10(lambdas), mse_train_scores, label='MSE train Ridge')
+    plt.plot(np.log10(lambdas), mse_scores_lasso, label="MSE test Lasso")
+    plt.plot(np.log10(lambdas), mse_train_scores_lasso, label='MSE train Lasso')
+    plt.xlabel('log10(lambda)')
+    plt.ylabel('MSE')
+    plt.legend()
+    save_fig('mse-lambda-ridge-lasso-plot')
+    plt.show()
+
+    plt.plot(np.log(lambdas), r2_ridge, label='R2-score ridge')
+    plt.plot(np.log(lambdas), r2_lasso, label='R2-score lasso')
+    plt.plot(np.log(lambdas), r2_ols, label="R2-score linear reg")
+    plt.xlabel('log10(lambda)')
+    plt.ylabel('R2-score')
+    plt.legend()
+    save_fig('r2-lambda-ridge-lasso-plot')
+    plt.show()
+
+    return
+
+
+
+#part_a()
 #part_b()
+part_c()
+#part_d()
+#part_e()
+#mse_lambda_plot()
 
-
-
-
-
-"""
-Part c)
-"""
