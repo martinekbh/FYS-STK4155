@@ -1,0 +1,209 @@
+\documentclass[a4paper, 10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{verbatim}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{a4wide}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[dvips]{epsfig}
+\usepackage[toc,page]{appendix}
+\usepackage[T1]{fontenc}
+\usepackage{cite} % [2,3,4] --> [2--4]
+\usepackage{shadow}
+\usepackage{hyperref}
+\usepackage{titling}
+\usepackage{marvosym }
+\usepackage{physics}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{ifthen}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows}
+\usepackage[noabbrev]{cleveref}
+\usepackage{wasysym}
+\usepackage{changepage}
+
+\newcommand{\gray}[1]{\textcolor{gray}{#1}}
+\newcommand{\spin}[1]{\ifthenelse{#1 = 1}{\uparrow}{\downarrow}}
+\newcommand{\tilstand}[4]{
+    \(\displaystyle
+        \begin{matrix}
+                & \gray{\spin{#3}} & \gray{\spin{#4}}\\
+            \gray{\spin{#2}} & \spin{#1}  & \spin{#2} & \gray{\spin{#1}}\\
+            \gray{\spin{#4}} & \spin{#3} & \spin{#4} &  \gray{\spin{#3}}\\
+                & \gray{\spin{#1}} & \gray{\spin{#2}}
+        \end{matrix}
+    \)
+}
+
+\renewcommand{\topfraction}{.85}
+\renewcommand{\bottomfraction}{.7}
+\renewcommand{\textfraction}{.15}
+\renewcommand{\floatpagefraction}{.66}
+\renewcommand{\dbltopfraction}{.66}
+\renewcommand{\dblfloatpagefraction}{.66}
+\setcounter{topnumber}{9}
+\setcounter{bottomnumber}{9}
+\setcounter{totalnumber}{20}
+\setcounter{dbltopnumber}{9}
+
+
+\setlength{\droptitle}{-10em}   % This is your set screw
+
+\setcounter{tocdepth}{2}
+
+\lstset{language=c++}
+\lstset{alsolanguage=[90]Fortran}
+\lstset{basicstyle=\small}
+\lstset{backgroundcolor=\color{white}}
+\lstset{frame=single}
+\lstset{stringstyle=\ttfamily}
+\lstset{keywordstyle=\color{red}\bfseries}
+\lstset{commentstyle=\itshape\color{blue}}
+\lstset{showspaces=false}
+\lstset{showstringspaces=false}
+\lstset{showtabs=false}
+\lstset{breaklines}
+\title{Regression analysis on two dimensional Franke's function}
+\author{Aram Salihi$^1$, Martine Tan $^2$ \& Andras Filip Plaian $^2$
+\\
+  \small $^1$Department of Informatics,University of Oslo, N-0316 Oslo, Norway\\
+\small Department of Mathematics$^2$, University of Oslo, N-0316 Oslo, Norway}
+\begin{document}
+\maketitle
+\begin{abstract}
+In this numerical study we have used three different linear regression methods to study the polynomial fit of the two dimensional Franke's function. The standard ordinary least squared (OLS), Ridge and LASSO regression has been used. Further we have used the cross validation to further assess if the model is correct.
+
+\end{abstract}
+\tableofcontents
+\section{Introduction} In todays science and industrial societies the number of data created is constantly growing. This makes it harder to analyze data when using
+\section{Theory}
+\subsection{Franke's function} Franke's function is a two dimensional Gaussian function with two peaks. This function is widely used as a test function in interpolation and fitting problems.
+\begin{align}
+  f(x,y) = \frac{3}{4}\exp{-\frac{(9x-2)^2}{4} - \frac{(9y-2)^2}{4}}
++
+  \frac{3}{4}\exp{-\frac{(9x+1)^2}{49} - \frac{(9y+1)^2}{10}}
+  \\
++  \frac{3}{4}\exp{-\frac{(9x-7)^2}{4} - \frac{(9y-3)^2}{4}}
++
+  \frac{3}{4}\exp{-(9x-4)^2 - (9y-7)^2}
+\end{align}
+\subsection{Linear regression and matrix notation} Consider an experiment with a set of datapoints $\mathbf{z} = \{z_{0}...z_{n-1}\}$ observed, Further we want to model these observations as a function of $\mathbf{x} = \{x_{0}...x_{n-1}\}$ and $\mathbf{y} = \{y_{0}...y_{n-1}\}$ . Keep in mind that, when modeling datapoints one has to be perpared that error can arise in our approximation. We will now assume that our response variable $z(x,y)$ is a smooth function and thus can be parameterized as a two dimensional polynomial of $x$ and $y$
+\begin{align}
+  z_{i} = z(x_{i},y_{i}) = \tilde{z}_{i} + \epsilon_{i}
+\end{align}
+Where $\tilde{z}$ is the estimator of our response variable $z$. Expanding this, we will obtain a set of equation
+\begin{align*}
+  & z_{0} = \epsilon_{0} + \beta_{0} + \beta_{1}x_{0} + \beta_{2}y_{0} + \beta_{3}x_{0}^{2}+ \beta_{4}y_{0}x_{0} + \beta_{5}y_{0}^{2} + ....
+  + \beta_{j}x^{k}_{0}y_{0}^{k-d}
+  & .\\
+  & .\\
+  & .\\
+  & .\\
+  & z_{n-1} = \epsilon_{n-1} + \beta_{0} + \beta_{1}x_{n-1} + \beta_{2}y_{n-1} + \beta_{3}x_{n-1}^{2} + \beta_{4}y_{n-1}x_{n-1} +\beta_{5}y_{n-1}^{2} +  ....
+  + \beta_{j}x^{k}_{n-1}y_{n-1}^{k-d}
+\end{align*}
+Where $\beta{j}$ is the unknown weights we wish to find in order to fit the datapoints $z$. In this case there exist in total $\sum_{t =
+0}^{d-1}(i+1)$ of $\beta$'s, and $k$ goes from $k = d,...., 0$, where $d$ is order of the polynomial we want to use. Notice that this set of linear equation can be expressed in vector-matrix notation on the form:
+\begin{align}
+  \mathbf{y} = X\boldsymbol{\beta} + \mathbf{\epsilon}
+  \label{matrix equation}
+\end{align}
+Where $X$ is a design matrix with dimension $(n-1)\times d$, which looks like
+\begin{align}
+  X =
+\begin{pmatrix}
+  1 & x_{0} & y_{0}& x_{0}^{2} & x_{0}y_{0}  & y_{0}^{2} & . & . &  x_{0}^{k}y_{0}^{k-d}\\
+  .& . & .& .& .& .& . & . & .& \\
+  .& . & .& .& .& .& . & . & .& \\
+  .& . & .& .& .& .& . & . & .& \\
+  .& . & .& .& .& .& . & . & .& \\
+  .& . & .& .& .& .& . & . & .& \\
+  .& . & .& .& .& .& . & . & .& \\
+  .& . & .& .& .& .& . & . & .& \\
+  .& . & .& .& .& .& . & . & .& \\
+    1 & x_{n-1} & y_{n-1} & x_{n-1}^{2} & x_{n-1}y_{n-1} & y_{n-1}^{2} & . & . &  x_{n-1}^{k}y_{n-1}^{k-d}
+\end{pmatrix}
+\end{align}
+\subsection{Ordinary least square (OLS)}
+Quite often we will stumble on problems where the number of unknowns $\beta$ are greater than observables (response variable). Due to this problem we cannot invert the design matrix (not a square matrix) to solve the matrix equation, we will therefore consider a cost function $C(\beta)$ (for the sake of simplicity we will assume that response and estimator variable are one dimensional)
+\begin{align}
+  C(\beta) = \frac{1}{n}\sum_{i = 0}^{n}(z-\tilde{z})^2 = \frac{1}{n}\left(\mathbf{y} - \tilde{\mathbf{y}}\right)^{T} \left(\mathbf{y} - \tilde{\mathbf{y}}\right)
+  \label{cost}
+\end{align}
+where the estimator variable is $\mathbf{\tilde{z}} = X\boldsymbol{\beta}$. We now want to find $\boldsymbol{\beta}$ which minimizes the cost function. In order to this consider the following
+\begin{align}
+  \min_{\boldsymbol{\beta}\in \mathbb{R}^{d}}C(\boldsymbol{\beta}) = \min_{\boldsymbol{\beta}\in \mathbb{R}^{d}}\left\{\frac{1}{n}\left(\mathbf{y} - \tilde{\mathbf{y}}\right)^{T} \left(\mathbf{y} - \tilde{\mathbf{y}}\right)\right\} = 0
+\end{align}
+For the sake of simplicity we can also express this as
+\begin{align}
+  \pdv{C(\beta)}{\beta_{j}} =
+  \pdv{\beta_{j}}\left[\frac{1}{n}\sum_{i = 0}^{n-1}\left(y_{i} - \beta_{0}x_{i,0}  - \beta_{1}x_{i,1} - .......- \beta_{n-1}x_{i,n-1}\right)^{2}\right] = 0
+\end{align}
+Performing this partial derivative we will obtain the following
+\begin{align}
+    \pdv{C(\beta)}{\beta_{j}} = - \frac{2}{n}\left[\frac{1}{n}\sum_{i = 0}^{n-1}x_{ij}\left(y_{i} - \beta_{0}x_{i,0}  - \beta_{1}x_{i,1} - .......- \beta_{n-1}x_{i,n-1}\right)\right] = 0
+\end{align}
+This can be beutifully expressed in matrix notation as
+\begin{align}
+  X^{T}\left(\mathbf{y} - X^{T}X\boldsymbol{\beta}\right) = 0
+\end{align}
+Notice that that this equation can be simply be written as:
+\begin{align}
+  X^{T}X\boldsymbol{\beta} = X^{T}\mathbf{y}
+\end{align}
+This is the so called normal equation. Now notice that $X^{T}X$ is a square matrix. If this square matrix is a non-singular matrix, if and only if all the coloumn vectors are linearly independent there will exist a invertible matrix such that:
+\begin{align}
+  \boldsymbol{\beta} =(X^{T}X)^{-1}X^{T}\mathbf{y}
+\end{align}
+Quite often inverting a matrix is quite tedious and require alot more operations, but it do exist algorithm which solves this equation more efficient, such as SVD (singular value decompistion), Cholesky factorization or QR method. In our case we have used numpy's PINV function to invert this matrix, but this function uses SVD as algorithm. The beauty of this numpy function is that it handles problems with singularities perfectly. Consider a case where $X^{T}X$ contains singular values, in order to remove this values we will add some small value $\lambda$
+\begin{align}
+  X^{T}X \approx X^{T}X + \lambda\mathbb{I}
+\end{align}
+The numpy function will already take care of this by doing this.  Keep in mind that OLS can be generalized to higher dimensions.
+\subsection{Ridge regression} .In comparison with the standard OLS method the Ridge regression will actually take care of the singularities if $X^{T}X$ is singular. Recall the cost function from the previous section \eqref{cost}
+\begin{align}
+  C(\boldsymbol{\beta}) = \frac{1}{n}\left(\mathbf{y} - X\boldsymbol{\beta}\right)^{T}\left(\mathbf{y} - X\boldsymbol{\beta}\right)
+\end{align}
+Which is the MSE for the OLS method. From previous section we mentioned that that the matrix product $X^{T}X$ could be a singular matrix, thus not invertible. We therefore wish to add a regularization parameter $\lambda$ by penalizing the cost function.
+\begin{align}
+  C(\boldsymbol{\beta}) = \frac{1}{n}\left(\mathbf{y} - X\boldsymbol{\beta}\right)^{T}\left(\mathbf{y} - X\boldsymbol{\beta}\right) + \lambda\boldsymbol{\beta}^{T}\boldsymbol{\beta}
+\end{align}
+We now wish to shrink the distance between the response and estimator  thus finding a $\boldsymbol{\beta}$ which satisifies this condition. Consider the following
+\begin{align}
+  \min_{\boldsymbol{\beta}\in \mathbb{R}^{d}}C(\boldsymbol{\beta}) = \min_{\boldsymbol{\beta}\in \mathbb{R}^{d}}
+  \frac{1}{n}||\mathbf{y} - X\boldsymbol{\beta}||^{2}_{2} + \lambda||\beta||_{2}^{2}
+\end{align}
+Solving this equation we can express the expression above as
+\begin{align}
+    X^{T}y = \beta^{ridge}(X^{T}X + n\lambda\mathbb{I})
+\end{align}
+We will further define $n\lambda = \lambda$. Recall from previous that the regularization paramter took care of the singularities, thus $(X^{T}X + \lambda\mathbb{I})$ should be invertible since the new matrix should contain $n-1$ linearly independent coloumn vectors. This can be proven by using SVD decompistion on this matrix, a small proof is this is given in the appendix. Thus, the solution to $\boldsymbol{\beta}$
+\begin{align}
+  \beta^{ridge} = (X^{T}X + \lambda\mathbb{I})^{-1}X^{T}y
+\end{align}
+This is the famous ridge regression method. As previously mentioned, the invertion of matrix is quite tedious, and thus SVD decompistion is the most desired method for solving this type of equation. Further keep in mind, if the matrix $X^{T}X$ is non-singular (thus orthogonal), what ridge regression does is shriking $\boldsymbol{skriv mer!}$
+\subsection{LASSO regression} The idea behind LASSO is to shrink the data towards a central point. Thus shriking the $\beta$ to a point where some of the coefficients are zero. What this does compared to ridge regression is that, not only does it reduce overfitting but also generating a more simpler model, due to fewer coefficients in the polynomial fit.
+\vspace{3mm}
+\\
+ Mathematically, this is done by adding a $\lambda$ term to minimized cost function. Instead of taking the l2 norm of $\boldsymbol{\beta}$ as in ridge regression (the normal euclidian norm), we are doing a l1 norm (taking the absolute value) on $\boldsymbol{\beta}$. Thus we want to minimize the following
+\begin{align}
+\min_{\boldsymbol{\beta}\in \mathbb{R}^{d}}C(\boldsymbol{\beta}) = \min_{\boldsymbol{\beta}\in \mathbb{R}^{d}}
+\frac{1}{n}||\mathbf{y} - X\boldsymbol{\beta}||^{2}_{2} + \lambda||\beta||_{1}
+\end{align}
+Where the l1 norm is $||\beta||_{1} = \sum_{i = 0}^{n-1}|\beta_{i}|$. We now perfomed an absolute shrinkage to the coefficients we wish to find.
+$\boldsymbol{skriv mer!}$
+\section{Method/Implementation}
+In this following sections we will describes the implementation of the different linear regression used and the creation of the design matrix. Keep in mind that these are implementation in python3, used different libraries such as numpy, scipy and scikitlearn.
+\subsection{Design matrix} The dimensionality of the design matrix $X$ is dependent on the polynomial order and number of datapoints from Franke's function.
+\subsection{OLS} consider
+\section{Result}
+\section{Discussion}
+\section{Conclusion}
+\section{References}
+\section{Appendix}
+\end{document}
