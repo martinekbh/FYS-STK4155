@@ -27,6 +27,11 @@ y = np.arange(0, 1, 1/k)    # Numbers on y-axis
 x, y = np.meshgrid(x,y)     # Create meshgrid of x and y axes
 z = FrankeFunction(x,y)     # The z-values
 
+#print(x[1,2], y[1,2])
+#print(z[1,2])
+#print(FrankeFunction(x[1,2],y[1,2]))
+
+
 x1 = np.ravel(x)            # Flatten to vector
 n = len(x1)                 # Number of observations (n=k*k)
 y1 = np.ravel(y)
