@@ -51,16 +51,15 @@ def part_a():
 
     # ---MAKE PLOTS---
     # Plot the surface of the Franke function
-    make3Dplot(x,y,z, title="Franke Function", name="franke_func.png", show=False)
+    make3Dplot(x,y,z, name="franke_func", show=False)
 
     # Plot the surface of the predicted values
-    make3Dplot(x,y,z_pred.reshape(k,k), title="Linear regression (Franke function)", 
-                    name ="lin_reg_franke_func.png", show=False)
+    make3Dplot(x,y,z_pred.reshape(k,k), 
+                    name ="lin_reg_franke_func", show=False)
 
     # Plot surface of predicted values and of real z-values in one figure
     make3Dplot_multiple(x,y,(z, z_pred.reshape(k,k)), 
-                        title=("Plot of real Franke function", "Plot of z-predictions based on linear model"),
-                        name="franke_func_vs_linear_model.png", size=(25,10), show=False)
+                    name="franke_func_vs_linear_model", size=(25,10), show=False)
 
 
     # ---MAKE CONFIDENCE INTERVALS---
@@ -74,20 +73,33 @@ def part_a():
     # Computing the variances.
     variance_beta = s2*np.linalg.inv(X.T.dot(X))    # Covariance matrix                
     beta_var = np.diag(variance_beta)               # Variances of the betas 
-    beta_CIs = []                                   # List to contain the confidence intervals
+    beta_CIs = np.zeros((p,2))                      # Array to contain the confidence intervals
 
     # Find confidence intervals and print beta values
     print("\nOLS LINEAR REGRESSION (OWN CODE)")
     print("\nCoefficient estimations \t Confidence interval")
     for i in range(p):
-        beta_CIs.append([beta[i]-1.96*np.sqrt(beta_var[i]/n), beta[i]+1.96*np.sqrt(beta_var[i]/n)])
-        print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i]}")
+        beta_CIs[i,0] = beta[i]-1.96*np.sqrt(beta_var[i]/n)
+        beta_CIs[i,1] = beta[i]+1.96*np.sqrt(beta_var[i]/n)
+        print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i,:]}")
 
     # NB: Someone check that the variances and CI's are correct...
 
+    # ---Make plot of the betas and the CIs---
+    beta_lower = beta_CIs[:,0]
+    beta_upper = beta_CIs[:,1]
+    print(beta_lower)
+    indexes = np.arange(p)
+    plt.plot(indexes, beta, 'ro', label='betas')
+    plt.plot(indexes, beta_upper, 'b+')
+    plt.plot(indexes, beta_lower, 'b+')
+    plt.xlabel('beta index')
+    save_fig('linreg-beta-values-plot')
+    plt.show()
+
     # ---EVALUATE MSE AND R2---
-    print(f"\nMean Squared Error: {MSE(z, z_pred)}")        #MSE using own code
-    print(f"R2-score: {R2(z, z_pred)}")                     #R2 using own code 
+    print(f"\nMean Squared Error: {MSE(z1, z_pred)}")        #MSE using own code
+    print(f"R2-score: {R2(z1, z_pred)}")                     #R2 using own code 
 
     print(f"MSE (scikitfunc): {mean_squared_error(z1, z_pred)}")    # For comparison
     print(f"R2 (scikitfunc): {r2_score(z1, z_pred)}")               # For comparison
@@ -111,8 +123,7 @@ def part_a():
 
     # Plot to compare with results from own code
     make3Dplot_multiple(x,y,(z_pred.reshape(k,k), z_pred_scikit.reshape(k,k)), 
-                title=("Linear regression with own code","Linear regression with scikit"), 
-                name="lin_reg_scikit_franke_func.png", show=True)
+                name="lin_reg_scikit_franke_func", show=False)
 
     return
 
@@ -125,6 +136,7 @@ Part b) Resampling of data and Cross-validation
 # ---CROSS VALIDATION---
 def part_b():
 
+    np.random.seed(1)
     # ---SPLIT DATA IN TRAIN/TEST SETS AND PERFORM LINEAR REGRESSION---
     test_size = 0.2     # size of test-set (in percentage)
     #x_train, x_test, y_train, y_test = train_test_split(x1, y1, test_size=test_size, random_state=1)
@@ -145,7 +157,7 @@ def part_b():
 
     # Plot
     make3Dplot(x_test, y_test, z_pred, title="Linear regression with 80% training data and 20% test data",
-                    name="linreg-traintestsplit-20percent-plot.png", show=False)
+                    name="linreg-traintestsplit-20percent-plot", show=False)
 
 
     mse = (1/len(z_test))*((z_test - z_pred).T @ (z_test - z_pred))
@@ -155,23 +167,27 @@ def part_b():
     print(f"mse scikit = {mean_squared_error(z_test, z_pred)}")
     print(f"MSE = {MSE(z_test, z_pred)}\nR2 = {R2(z_test, z_pred)}")
 
+    # ---USE CROSS VALIDATION TO IMPROVE ACCURACY OF RESULTS (MSE)---
+    de = 5
+    mse_test, mse_train, r2sco = k_Cross_Validation(x1, y1, z1, d=de)
+    print(f"\nLINEAR REGRESSION (with 5-fold CV) USING DEGREE {de}:")
+    print(f"MSE = {mse_test}\nR2 = {r2sco}")
 
     # ---MAKE PLOT OF ERROR VS. DEGREE OF POLYNOMIAL---
-    maxdegree = 20
+    maxdegree =16
     degrees = np.arange(1, maxdegree+1)
 
     test_err_results = []
     train_err_results = []
     r2_score_results = []
 
+    print(f"\nTesting which degree from 1 to {maxdegree} gives lowest MSE using 5-fold CV...")
     for deg in degrees:
         test_err, train_err, r2 = k_Cross_Validation(x1, y1, z1, d=deg)
         test_err_results.append(test_err)
         train_err_results.append(train_err)
         r2_score_results.append(r2)
 
-        print('Error:', test_err)
-        print('Train Error:', train_err)
 
     # Plot
     # Plot test-error and train-error
@@ -181,9 +197,21 @@ def part_b():
     plt.legend()
     plt.xlabel('degree of polynomial')
     plt.ylabel('error')
-    save_fig('train-test-error-plot.png')
-    plt.title('training and test error vs. polynomial degree')
+    save_fig('linreg-train-test-error-plot')
+    #plt.title('training and test error vs. polynomial degree')
     plt.show()
+
+    # ---DO LINEAR REGRESSION FOR OPTIMAL DEGREE d---
+    min_index = np.where(test_err_results == min(test_err_results))
+    deg_ind  = tuple(i.item() for i in min_index)
+    opt_degree = degrees[deg_ind]
+    print("Optimal degree: ", opt_degree)
+
+    test_err, train_err, r2 = k_Cross_Validation(x1, y1, z1, d=opt_degree)
+    print(f"\nLINEAR REGRESSION (with 5-fold CV) USING OPTIMAL DEGREE {opt_degree}:")
+    print(f"MSE = {test_err}\nR2 = {r2}")
+
+
 
     return
 
@@ -503,9 +531,9 @@ def mse_lambda_plot():
 
 
 
-#part_a()
-#part_b()
-part_c()
+part_a()
+part_b()
+#part_c()
 #part_d()
 #part_e()
 #mse_lambda_plot()
