@@ -4,11 +4,14 @@ from imageio import imread
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
+import time
+
 
 from sklearn.linear_model import LinearRegression
 from sklearn import linear_model
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.preprocessing import PolynomialFeatures
+
 
 
 # Where to save the figures and data files
@@ -19,8 +22,8 @@ DATA_ID = "DataFiles/"
 # Load the terrain
 #terrain1 = imread(DATA_ID + 'SRTM_data_Norway_1.tif')
 terrain1 = imread(DATA_ID + 'SRTM_data_Norway_2.tif')
-terrain1_reduced = terrain1[1000:2800,:]
-print(terrain1_reduced.shape)
+#terrain1_reduced = terrain1[1600:2800,600:1200]
+#print(terrain1_reduced.shape)
 
 
 # Show the terrain
@@ -30,63 +33,52 @@ plt.imshow(terrain1, cmap='gray')
 plt.xlabel('X')
 plt.ylabel('Y')
 save_fig('terrain1')
-#plt.show()
+plt.show()
 #plt.close()
 
-# Show the terrain
+# Show the terrain reduced
+'''
 plt.figure()
 plt.title('Terrain over Norway 1')
-plt.imshow(terrain1_reduced, cmap='gray', extent=[0, 1801, 1000, 2800])
+plt.imshow(terrain1_reduced, cmap='gray', extent=[1600, 2800, 600, 1200])
 plt.xlabel('X')
 plt.ylabel('Y')
 save_fig('terrain1_reduced')
-#plt.show()
+plt.show()
 #plt.close()
-
+'''
 # ---MAKE DATA---
-y_len, x_len = terrain1_reduced.shape
+y_len, x_len = terrain1.shape
 print(f'Number of x: {x_len}, Number of y: {y_len}')
-x = np.arange(x_len)
+
+x = np.arange(x_len) #normalizing the data to improve numerical stability
+xmax = x/(np.amax(x))
 y = np.arange(y_len)
-x, y = np.meshgrid(x, y)
+ymax = y/(np.amax(y))
+x, y = np.meshgrid(xmax, ymax)
 print(x.shape, y.shape)
-print(terrain1_reduced.shape)
+print(terrain1.shape)
 x1 = np.ravel(x)
 y1 = np.ravel(y)
-z1 = np.ravel(terrain1_reduced)
+z1 = np.ravel(terrain1)
 n = len(z1)
 
-print(np.amax(z1))
-print(np.amin(z1))
+
+deg = 9
+
 
 '''
 # ---LINEAR REGRESSION---
-deg = 5
+
 X = CreateDesignMatrix_X(x1, y1, d=deg)
 #beta = np.linalg.pinv(X.T @ X) @ X.T @ z1
 beta = SVDinv(X.T @ X) @ X.T @ z1 #more stable inversion than above
 
 z_pred = X @ beta
 
-print(np.amax(z_pred))#
-print(np.amin(z_pred))#
-def MSE(z, z_pred):
-    """ Function to evaluate the Mean Squared Error """
-    z = np.ravel(z)
-    z_pred = np.ravel(z_pred)
-    mse = (1/len(z))*sum((z-z_pred)**2)
-    return mse
 
-def R2(z, z_pred):
-    """ Function to evaluate the R2-score """
-    z = np.ravel(z)
-    z_pred = np.ravel(z_pred)
-    mean = (1/len(z))*sum(z)
-    r2 = 1 - (sum((z-z_pred)**2)/sum((z - mean)**2))
-    return r2
-
-print(f"\nMean Squared Error: {MSE(z1, z_pred)}")    # NB: Someone check that this value is correct...
-print(f"R2-score: {R2(z1, z_pred)}")
+t3=time.time()
+print("Runtime in seconds: {}".format(t3-t2))
 
 
 # make plot
@@ -98,14 +90,43 @@ plt.ylabel('Y')
 plt.title(f'Linear regression with degree={deg}')
 save_fig('linreg-terrain1')
 plt.show()
+
+print('linear regression data')
+print(f"\nMean Squared Error: {MSE(z1,z_pred)}")
+print(f"R2-score: {R2(z1,z_pred)}")
 '''
 
+# ---RIDGE REGRESSION---
 
-deg=2
-# ---LASSO REGRESSION---
+
+X = CreateDesignMatrix_X(x1, y1, d=deg)
+XTX = X.T @ X
+dim = len(XTX)
+W = np.linalg.pinv(XTX + 0.01*np.identity(dim)) #chose a lambda
+beta = W @ X.T @ z1
+p = len(beta)                       # p is the complexity of the model
+z_pred = X @ beta                   # Predicted z values
+
+print(z_pred.reshape(y_len, x_len).shape)
+plt.figure()
+plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray')
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.title(f'Ridge regression with degree={deg}')
+save_fig('Ridge-terrain1')
+plt.show()
+
+print('linear regression data')
+print(f"\nMean Squared Error: {MSE(z1,z_pred)}")
+print(f"R2-score: {R2(z1,z_pred)}")
+
+
+
+'''
+# ---LASSO REGRESSION---  #very slow, dont try higher than degree 8
 X = CreateDesignMatrix_X(x1, y1, d=deg)
 
-clf = linear_model.Lasso(alpha=0.3)
+clf = linear_model.Lasso(alpha=0.2)
 lasso= clf.fit(X, z1)
 
 z_pred = lasso.predict(X)
@@ -114,7 +135,8 @@ mse = mean_squared_error(z1, z_pred)
 
 print(f"\nMean Squared Error: {mse}")
 print(f"R2-score: {r2}")
-
+t1=time.time()
+print("Runtime in seconds: {}".format(t1-t0))
 # make plot
 print(z_pred.reshape(y_len, x_len).shape)
 plt.figure()
@@ -124,12 +146,11 @@ plt.ylabel('Y')
 plt.title(f'Lasso regression with degree={deg}')
 save_fig('Lassoereg-terrain1')
 plt.show()
-
-
+'''
 
 def linreg_CV():
     # ---CV to find out which degree is best for linear regression---
-    maxdegree = 10
+    maxdegree = 8
     degrees = np.arange(1, maxdegree+1)
 
     test_err_results = []
@@ -154,8 +175,8 @@ def linreg_CV():
     plt.title('Training and test error vs. polynomial degree')
     #plt.show()
 
-    #opt_degree = np.where(test_err_results == test_err_results.min())
-    opt_degree = 2
+    opt_degree = np.where(test_err_results == test_err_results.min())
+    #opt_degree = 2
     return
 
 def ridge_CV():
