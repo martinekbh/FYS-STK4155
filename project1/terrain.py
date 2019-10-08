@@ -5,6 +5,11 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
+from sklearn.linear_model import LinearRegression
+from sklearn import linear_model
+from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.preprocessing import PolynomialFeatures
+
 
 # Where to save the figures and data files
 PROJECT_ROOT_DIR = "Results"
@@ -12,8 +17,11 @@ FIGURE_ID = "Results/FigureFiles"
 DATA_ID = "DataFiles/"
 
 # Load the terrain
-terrain1 = imread(DATA_ID + 'SRTM_data_Norway_1.tif')
-#terrain2 = imread(DATA_ID + 'SRTM_data_Norway_2.tif')
+#terrain1 = imread(DATA_ID + 'SRTM_data_Norway_1.tif')
+terrain1 = imread(DATA_ID + 'SRTM_data_Norway_2.tif')
+terrain1_reduced = terrain1[1000:2800,:]
+print(terrain1_reduced.shape)
+
 
 # Show the terrain
 plt.figure()
@@ -23,26 +31,63 @@ plt.xlabel('X')
 plt.ylabel('Y')
 save_fig('terrain1')
 #plt.show()
+#plt.close()
+
+# Show the terrain
+plt.figure()
+plt.title('Terrain over Norway 1')
+plt.imshow(terrain1_reduced, cmap='gray', extent=[0, 1801, 1000, 2800])
+plt.xlabel('X')
+plt.ylabel('Y')
+save_fig('terrain1_reduced')
+#plt.show()
+#plt.close()
 
 # ---MAKE DATA---
-y_len, x_len = terrain1.shape
+y_len, x_len = terrain1_reduced.shape
 print(f'Number of x: {x_len}, Number of y: {y_len}')
 x = np.arange(x_len)
 y = np.arange(y_len)
 x, y = np.meshgrid(x, y)
 print(x.shape, y.shape)
-print(terrain1.shape)
+print(terrain1_reduced.shape)
 x1 = np.ravel(x)
 y1 = np.ravel(y)
-z1 = np.ravel(terrain1)
+z1 = np.ravel(terrain1_reduced)
 n = len(z1)
 
+print(np.amax(z1))
+print(np.amin(z1))
 
+'''
 # ---LINEAR REGRESSION---
 deg = 5
 X = CreateDesignMatrix_X(x1, y1, d=deg)
-beta = np.linalg.pinv(X.T @ X) @ X.T @ z1
+#beta = np.linalg.pinv(X.T @ X) @ X.T @ z1
+beta = SVDinv(X.T @ X) @ X.T @ z1 #more stable inversion than above
+
 z_pred = X @ beta
+
+print(np.amax(z_pred))#
+print(np.amin(z_pred))#
+def MSE(z, z_pred):
+    """ Function to evaluate the Mean Squared Error """
+    z = np.ravel(z)
+    z_pred = np.ravel(z_pred)
+    mse = (1/len(z))*sum((z-z_pred)**2)
+    return mse
+
+def R2(z, z_pred):
+    """ Function to evaluate the R2-score """
+    z = np.ravel(z)
+    z_pred = np.ravel(z_pred)
+    mean = (1/len(z))*sum(z)
+    r2 = 1 - (sum((z-z_pred)**2)/sum((z - mean)**2))
+    return r2
+
+print(f"\nMean Squared Error: {MSE(z1, z_pred)}")    # NB: Someone check that this value is correct...
+print(f"R2-score: {R2(z1, z_pred)}")
+
 
 # make plot
 print(z_pred.reshape(y_len, x_len).shape)
@@ -53,6 +98,34 @@ plt.ylabel('Y')
 plt.title(f'Linear regression with degree={deg}')
 save_fig('linreg-terrain1')
 plt.show()
+'''
+
+
+deg=2
+# ---LASSO REGRESSION---
+X = CreateDesignMatrix_X(x1, y1, d=deg)
+
+clf = linear_model.Lasso(alpha=0.3)
+lasso= clf.fit(X, z1)
+
+z_pred = lasso.predict(X)
+r2 = r2_score(z1, z_pred)
+mse = mean_squared_error(z1, z_pred)
+
+print(f"\nMean Squared Error: {mse}")
+print(f"R2-score: {r2}")
+
+# make plot
+print(z_pred.reshape(y_len, x_len).shape)
+plt.figure()
+plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray')
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.title(f'Lasso regression with degree={deg}')
+save_fig('Lassoereg-terrain1')
+plt.show()
+
+
 
 def linreg_CV():
     # ---CV to find out which degree is best for linear regression---
@@ -79,7 +152,7 @@ def linreg_CV():
     plt.ylabel('error')
     save_fig('terrain-train-test-error-plot.png')
     plt.title('Training and test error vs. polynomial degree')
-    plt.show()
+    #plt.show()
 
     #opt_degree = np.where(test_err_results == test_err_results.min())
     opt_degree = 2
@@ -145,8 +218,8 @@ def ridge_CV():
 
 
     # Computing the variances.
-    variance_beta = s2*(W @ XTX @ W.T)              # Covariance matrix                
-    beta_var = np.diag(variance_beta)               # Variances of the betas 
+    variance_beta = s2*(W @ XTX @ W.T)              # Covariance matrix
+    beta_var = np.diag(variance_beta)               # Variances of the betas
     beta_CIs = []                                   # List to contain the confidence intervals
 
     # Find confidence intervals and print beta values
@@ -161,4 +234,4 @@ def ridge_CV():
     return
 
 #linreg_CV()
-ridge_CV()
+#ridge_CV()
