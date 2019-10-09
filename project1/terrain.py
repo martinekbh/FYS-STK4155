@@ -22,7 +22,7 @@ DATA_ID = "DataFiles/"
 # Load the terrain data
 #terrain1 = imread(DATA_ID + 'SRTM_data_Norway_1.tif')
 terrain = imread(DATA_ID + 'SRTM_data_Norway_2.tif')
-terrain_reduced = terrain[1500:2700,:1100]
+terrain_reduced = terrain[1400:1420,400:420]
 
 
 # Show the terrain
@@ -32,16 +32,16 @@ plt.imshow(terrain, cmap='gray')
 plt.xlabel('X')
 plt.ylabel('Y')
 save_fig('terrain')
-plt.show()
+#plt.show()
 
 # Show the terrain reduced
 plt.figure()
 plt.title('Terrain over Norway')
-plt.imshow(terrain_reduced, cmap='gray', extent=[0,1100,2700,1500])
+plt.imshow(terrain_reduced, cmap='gray', extent=[400,420,1420,1400])
 plt.xlabel('X')
 plt.ylabel('Y')
 save_fig('terrain_reduced')
-plt.show()
+#plt.show()
 
 
 # ---MAKE DATA---
@@ -59,111 +59,15 @@ z1 = np.ravel(terrain_reduced)  # ---''---
 n = len(z1)                     # n is the number of datapoint/observations
 
 
-deg = 5
+np.random.seed(1001)            # Set seed for reproducability
 
-"""
-# ---LINEAR REGRESSION---
-t2 = time.time()
-X = CreateDesignMatrix_X(x1, y1, d=deg)
-#beta = np.linalg.pinv(X.T @ X) @ X.T @ z1
-beta = SVDinv(X.T @ X) @ X.T @ z1 #more stable inversion than above
-z_pred = X @ beta
-
-t3=time.time()
-print("Runtime in seconds: {}".format(t3-t2))
-
-# Plot
-plt.figure()
-plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray', extent=[0,1100,2700,1500])
-plt.xlabel('X')
-plt.ylabel('Y')
-plt.title(f'Linear regression with degree={deg}')
-save_fig('terrain-linreg')
-plt.show()
-
-print(f'Linear regression with degree {deg}')
-print(f"\nMean Squared Error: {MSE(z1,z_pred)}")
-print(f"R2-score: {R2(z1,z_pred)}")
-
-# ---MAKE CONFIDENCE INTERVALS---
-p = len(beta)
-s2 = (1/(n-p-1))*np.sum((z1 - z_pred)**2)       # Estimate of sigma^2 from Hastia
-
-# Computing the variances.
-variance_beta = s2*np.linalg.inv(X.T.dot(X))    # Covariance matrix                
-beta_var = np.diag(variance_beta)               # Variances of the betas 
-beta_CIs = np.zeros((p,2))                      # Array to contain the confidence intervals
-
-# Find confidence intervals and print beta values
-print("\nCoefficient estimations \t Confidence interval")
-for i in range(p):
-    beta_CIs[i,0] = beta[i]-1.96*np.sqrt(beta_var[i]/n)
-    beta_CIs[i,1] = beta[i]+1.96*np.sqrt(beta_var[i]/n)
-    print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i,:]}")
-
-"""
-
-# ---RIDGE REGRESSION---
-
-"""
-
-X = CreateDesignMatrix_X(x1, y1, d=deg)
-XTX = X.T @ X
-dim = len(XTX)
-W = np.linalg.pinv(XTX + 0.01*np.identity(dim)) #chose a lambda
-beta = W @ X.T @ z1
-p = len(beta)                       # p is the complexity of the model
-z_pred = X @ beta                   # Predicted z values
-
-print(z_pred.reshape(y_len, x_len).shape)
-plt.figure()
-plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray', extent=[0,1100,2700,1500])
-plt.xlabel('X')
-plt.ylabel('Y')
-#plt.title(f'Ridge regression with degree={deg}')
-save_fig(f'terrain-ridge-deg{deg}')
-plt.show()
-
-print('linear regression data')
-print(f"\nMean Squared Error: {MSE(z1,z_pred)}")
-print(f"R2-score: {R2(z1,z_pred)}")
-
-"""
-
-
-# ---LASSO REGRESSION---  #very slow, dont try higher than degree 8
-
-'''
-X = CreateDesignMatrix_X(x1, y1, d=deg)
-lmb = 0.2
-clf = linear_model.Lasso(alpha=lmb)
-lasso= clf.fit(X, z1)
-
-z_pred = lasso.predict(X)
-r2 = r2_score(z1, z_pred)
-mse = mean_squared_error(z1, z_pred)
-
-print(f"\nMean Squared Error: {mse}")
-print(f"R2-score: {r2}")
-t1=time.time()
-print("Runtime in seconds: {}".format(t1-t0))
-
-# make plot
-plt.figure()
-plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray', extent=[0,1100,2700,1500])
-plt.xlabel('X')
-plt.ylabel('Y')
-plt.title(f'Lasso regression with degree={deg}')
-save_fig(f'terrain-lasso-lmb{lmb:.4f}-deg{deg}')
-plt.show()
-'''
 
 def linreg_CV():
     print('\nOLS LINEAR REGRESSION ANALYSIS')
     # ---CV to find out which degree is best for linear regression---
-    maxdegree = 40
+    maxdegree = 35
     degrees = np.arange(1, maxdegree+1)
-    print(f'Initializing CV with OLS for degrees d=1, ..., {maxdegree} to plot MSE:')
+    print(f'Initializing CV with OLS for degrees d=1,...,{maxdegree} to plot MSE:')
 
     test_err_results = []
     train_err_results = []
@@ -185,7 +89,7 @@ def linreg_CV():
     plt.ylabel('error')
     save_fig('terrain-train-test-error-plot')
     #plt.title('Training and test error vs. polynomial degree')
-    #plt.show()
+    plt.show()
 
     # Record the optimal degree d
     min_index = np.where(test_err_results == min(test_err_results))
@@ -197,16 +101,17 @@ def linreg_CV():
 
     # ---LINEAR REGRESSION with optimal degree---
     X = CreateDesignMatrix_X(x1, y1, d=opt_degree)
-    beta = SVDinv(X.T @ X) @ X.T @ z1
+    #beta = SVDinv(X.T @ X) @ X.T @ z1
+    beta = np.linalg.pinv(X.T @ X) @ X.T @ z1
     z_pred = X @ beta
 
     # PLOT
     plt.figure()
-    plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray', extent=[0,1100,2700,1500])
+    plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray', extent=[400,420,1420,1400])
     plt.xlabel('X')
     plt.ylabel('Y')
     save_fig('terrain-linreg-optdegree')
-    #plt.show()
+    plt.show()
 
     print(f'\nLinear regression with degree {opt_degree} on whole dataset:')
     print(f"Mean Squared Error: {MSE(z1,z_pred)}")
@@ -214,6 +119,7 @@ def linreg_CV():
 
 
     # ---MAKE CONFIDENCE INTERVALS---
+    p = len(beta)
     s2 = (1/(n-p-1))*np.sum((z1 - z_pred)**2)       # Estimate of sigma^2 from Hastia
 
     # Computing the variances.
@@ -222,11 +128,11 @@ def linreg_CV():
     beta_CIs = np.zeros((p,2))                      # Array to contain the confidence intervals
 
     # Find confidence intervals and print beta values
-    print("\nCoefficient estimations \t Confidence interval")
+    #print("\nCoefficient estimations \t Confidence interval")
     for i in range(p):
         beta_CIs[i,0] = beta[i]-1.96*np.sqrt(beta_var[i]/n)
         beta_CIs[i,1] = beta[i]+1.96*np.sqrt(beta_var[i]/n)
-        print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i,:]}")
+        #print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i,:]}")
 
     # ---Make plot of the betas and the CIs---
     beta_lower = beta_CIs[:,0]
@@ -236,7 +142,7 @@ def linreg_CV():
     plt.plot(indexes, beta_upper, 'b+')
     plt.plot(indexes, beta_lower, 'b+')
     plt.xlabel('beta index')
-    save_fig('terrain-linreg-beta-values-plot')
+    save_fig(f'terrain-linreg-beta-values-plot')
 
     print('\a')     # Make alert sound to indicate code is finally done
     return
@@ -244,12 +150,12 @@ def linreg_CV():
 def ridge_CV():
 
     print(f"\nRIDGE REGRESSION ANALYSIS")
-    n_lambdas = 7
-    lambdas = np.logspace(-6,0, n_lambdas)
-    maxdegree = 20
+    n_lambdas = 40
+    lambdas = np.logspace(-10,0, n_lambdas)
+    maxdegree = 40
     degrees = np.arange(1, maxdegree+1)
     k = 5
-    print(f'Initializing CV with Ridge for {n_lambdas} lambdas in [10^(-4),1] and degrees from 1 to {maxdegree}')
+    print(f'Initializing CV with Ridge for {n_lambdas} lambdas in [10^(-10),1] and degrees from 1 to {maxdegree}')
 
     mse_scores = np.zeros((maxdegree, n_lambdas)) # Matrix to save the mse-scores
 
@@ -258,7 +164,7 @@ def ridge_CV():
         print(deg)
         j=0
         for lmb in lambdas:
-            print(lmb)
+            #print(lmb)
             test_err, train_err, r2 = k_Cross_Validation(x1, y1, z1, k=k, d=deg, reg_method='Ridge', lmb=lmb)
             mse_scores[i,j] = test_err
             j += 1
@@ -276,10 +182,10 @@ def ridge_CV():
     print(f"with lambda={opt_lambda}, and degree={opt_degree}")
 
     # Plot colormap of MSE
-    im = plt.imshow(mse_scores, cmap=plt.cm.RdBu, extent = [lambdas[0], lambdas[-1], degrees[-1], degrees[0]],
+    im = plt.imshow(mse_scores, cmap=plt.cm.RdBu, extent = [-10, 0, 1, maxdegree],
                 interpolation=None, aspect='auto')
     plt.colorbar(im)
-    plt.xlabel('lambda')
+    plt.xlabel('log10(lambda)')
     plt.ylabel('degree of polynomial')
     #plt.title('MSE colormap (Ridge)')
     save_fig('terrain-ridge-degree-lambda-colormap')
@@ -297,33 +203,33 @@ def ridge_CV():
 
     # PLOT
     plt.figure()
-    plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray', extent=[0,1100,2700,1500])
+    plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray', extent=[400,420,1420,1400])
     plt.xlabel('X')
     plt.ylabel('Y')
     save_fig('terrain-ridge-optparams')
     #plt.show()
 
+    
     # ---MAKE CONFIDENCE INTERVALS FOR THE BETAS---
     s2 = (1/(n-p-1))*np.sum((z1 - z_pred)**2)       # Estimate of sigma^2 from Hastia
 
     # Computing the variances.
     variance_beta = s2*(W @ XTX @ W.T)              # Covariance matrix
     beta_var = np.diag(variance_beta)               # Variances of the betas
-    #beta_CIs = []                                   # List to contain the confidence intervals
+    #beta_CIs = []                                  # List to contain the confidence intervals
     beta_CIs = np.zeros((p,2))                      # Array to contain the confidence intervals
 
     # Find confidence intervals and print beta values
     print("\nRIDGE REGRESSION ON WHOLE DATASET WITH OPTIMAL PARAMETERS")
     print(f"Lambda = {opt_lambda:.6f}, polynomial degree= = {opt_degree}")
+    print(f"MSE: {MSE(z1, z_pred)}")
+    print(f"R2: {R2(z1, z_pred)}")
 
-    print("\nCoefficient estimations \t Confidence interval")
-    #for i in range(p):
-    #    beta_CIs.append([beta[i]-1.96*np.sqrt(beta_var[i]/n), beta[i]+1.96*np.sqrt(beta_var[i]/n)])
-    #    print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i]}")
+    #print("\nCoefficient estimations \t Confidence interval")
     for i in range(p):
         beta_CIs[i,0] = beta[i]-1.96*np.sqrt(beta_var[i]/n)
         beta_CIs[i,1] = beta[i]+1.96*np.sqrt(beta_var[i]/n)
-        print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i,:]}")
+        #print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i,:]}")
 
     # ---Make plot of the betas and the CIs---
     beta_lower = beta_CIs[:,0]
@@ -338,5 +244,76 @@ def ridge_CV():
     print('\a') # Make alert sound to indicate code is finally done
     return
 
-linreg_CV()
+
+
+def lasso_CV():
+
+    print(f"\nLASSO REGRESSION ANALYSIS")
+    n_lambdas = 30
+    lambdas = np.logspace(-7,0, n_lambdas)
+    maxdegree = 30
+    degrees = np.arange(1, maxdegree+1)
+    k = 5
+    print(f'Initializing CV with LASSO for {n_lambdas} lambdas in [10^(-7),1] and degrees from 1 to {maxdegree}')
+
+    mse_scores = np.zeros((maxdegree, n_lambdas)) # Matrix to save the mse-scores
+
+    i=0
+    for deg in degrees:
+        print(deg)
+        j=0
+        for lmb in lambdas:
+            #print(lmb)
+            test_err, train_err, r2 = k_Cross_Validation(x1, y1, z1, k=k, d=deg, reg_method='Lasso', lmb=lmb)
+            mse_scores[i,j] = test_err
+            j += 1
+        i += 1
+
+    # Record optimal degree and lambda
+    min_MSE = mse_scores.min()
+    min_index = np.where(mse_scores == min_MSE)
+    deg_ind, lmb_ind = tuple(i.item() for i in min_index)
+    opt_lambda = lambdas[lmb_ind]   # lambda which gives lowest MSE
+    opt_degree = degrees[deg_ind]   # degree which gives lowest MSE
+
+    print('---done---')
+    print(f"Best MSE: {min_MSE}")
+    print(f"with lambda={opt_lambda}, and degree={opt_degree}")
+
+    # Plot colormap of MSE
+    im = plt.imshow(mse_scores, cmap=plt.cm.RdBu, extent = [-7, 0, 1, maxdegree],
+                interpolation=None, aspect='auto')
+    plt.colorbar(im)
+    plt.xlabel('log10(lambda)')
+    plt.ylabel('degree of polynomial')
+    #plt.title('MSE colormap (Ridge)')
+    save_fig('terrain-lasso-degree-lambda-colormap')
+    #plt.show()
+
+
+
+    # ---LASSO REGRESSION with optimal parameters---
+    X = CreateDesignMatrix_X(x1, y1, d=opt_degree)
+    model = Lasso(alpha=opt_lambda, fit_intercept = False, tol=0.001, max_iter=10e6)
+    fit = model.fit(X, z1)
+    z_pred = fit.predict(X)
+
+    # PLOT
+    plt.figure()
+    plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray', extent=[400,420,1420,1400])
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    save_fig('terrain-lasso-optparams')
+    #plt.show()
+
+    print(f'LASSO REGRESSION ON WHOLE DATASET WITH OPTIMAL PARAMETERS')
+    print(f'lambda = {opt_lambda}, polynomial degree = {opt_degree}')
+    print(f"MSE: {MSE(z1, z_pred)}")
+    print(f"R2: {R2(z1, z_pred)}")
+    print('\a') # Make alert sound to indicate code is finally done
+
+    return
+
+#linreg_CV()
 #ridge_CV()
+#lasso_CV()

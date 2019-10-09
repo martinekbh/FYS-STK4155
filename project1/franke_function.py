@@ -24,19 +24,20 @@ DATA_ID = "DataFiles/"
 k = 20                      # Number of points on each axis
 x = np.arange(0, 1, 1/k)    # Numbers on x-axis
 y = np.arange(0, 1, 1/k)    # Numbers on y-axis
-x, y = np.meshgrid(x,y)     # Create meshgrid of x and y axes
-z = FrankeFunction(x,y)     # The z-values
-
-#print(x[1,2], y[1,2])
-#print(z[1,2])
-#print(FrankeFunction(x[1,2],y[1,2]))
-
+#xmax = x/(np.amax(x))       # To normalize the x-axis
+#ymax = y/(np.amax(y))       # To normalize the y-axis
+x, y = np.meshgrid(x,y)       # Create meshgrid of x and y axes
+z = FrankeFunction(x,y)             # The z-values
 
 x1 = np.ravel(x)            # Flatten to vector
+y1 = np.ravel(y)            # Flatten to vector
 n = len(x1)                 # Number of observations (n=k*k)
-y1 = np.ravel(y)
-np.random.seed(1001)
+np.random.seed(1001)        # Set seed for reproducability
 z1 = np.ravel(z) + np.random.normal(0, .25, n)    # Add noise if wanted
+
+
+
+
 
 """
 Part a) Linear Regression 
@@ -532,7 +533,7 @@ def mse_lambda_plot():
 
 
 part_a()
-part_b()
+#part_b()
 #part_c()
 #part_d()
 #part_e()
