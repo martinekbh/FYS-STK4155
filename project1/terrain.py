@@ -61,6 +61,7 @@ n = len(z1)                     # n is the number of datapoint/observations
 
 deg = 5
 
+"""
 # ---LINEAR REGRESSION---
 t2 = time.time()
 X = CreateDesignMatrix_X(x1, y1, d=deg)
@@ -85,6 +86,7 @@ print(f"\nMean Squared Error: {MSE(z1,z_pred)}")
 print(f"R2-score: {R2(z1,z_pred)}")
 
 # ---MAKE CONFIDENCE INTERVALS---
+p = len(beta)
 s2 = (1/(n-p-1))*np.sum((z1 - z_pred)**2)       # Estimate of sigma^2 from Hastia
 
 # Computing the variances.
@@ -99,6 +101,7 @@ for i in range(p):
     beta_CIs[i,1] = beta[i]+1.96*np.sqrt(beta_var[i]/n)
     print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i,:]}")
 
+"""
 
 # ---RIDGE REGRESSION---
 
@@ -158,7 +161,7 @@ plt.show()
 def linreg_CV():
     print('\nOLS LINEAR REGRESSION ANALYSIS')
     # ---CV to find out which degree is best for linear regression---
-    maxdegree = 25
+    maxdegree = 40
     degrees = np.arange(1, maxdegree+1)
     print(f'Initializing CV with OLS for degrees d=1, ..., {maxdegree} to plot MSE:')
 
@@ -182,7 +185,7 @@ def linreg_CV():
     plt.ylabel('error')
     save_fig('terrain-train-test-error-plot')
     #plt.title('Training and test error vs. polynomial degree')
-    plt.show()
+    #plt.show()
 
     # Record the optimal degree d
     min_index = np.where(test_err_results == min(test_err_results))
@@ -228,7 +231,6 @@ def linreg_CV():
     # ---Make plot of the betas and the CIs---
     beta_lower = beta_CIs[:,0]
     beta_upper = beta_CIs[:,1]
-    print(beta_lower)
     indexes = np.arange(p)
     plt.plot(indexes, beta, 'ro', label='betas')
     plt.plot(indexes, beta_upper, 'b+')
@@ -242,9 +244,9 @@ def linreg_CV():
 def ridge_CV():
 
     print(f"\nRIDGE REGRESSION ANALYSIS")
-    n_lambdas = 5
-    lambdas = np.logspace(-4,0, n_lambdas)
-    maxdegree = 5
+    n_lambdas = 7
+    lambdas = np.logspace(-6,0, n_lambdas)
+    maxdegree = 20
     degrees = np.arange(1, maxdegree+1)
     k = 5
     print(f'Initializing CV with Ridge for {n_lambdas} lambdas in [10^(-4),1] and degrees from 1 to {maxdegree}')
@@ -293,6 +295,13 @@ def ridge_CV():
     p = len(beta)               # p is the complexity of the model
     z_pred = X @ beta           # Predicted z values
 
+    # PLOT
+    plt.figure()
+    plt.imshow(z_pred.reshape(y_len, x_len), cmap='gray', extent=[0,1100,2700,1500])
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    save_fig('terrain-ridge-optparams')
+    #plt.show()
 
     # ---MAKE CONFIDENCE INTERVALS FOR THE BETAS---
     s2 = (1/(n-p-1))*np.sum((z1 - z_pred)**2)       # Estimate of sigma^2 from Hastia
@@ -300,18 +309,34 @@ def ridge_CV():
     # Computing the variances.
     variance_beta = s2*(W @ XTX @ W.T)              # Covariance matrix
     beta_var = np.diag(variance_beta)               # Variances of the betas
-    beta_CIs = []                                   # List to contain the confidence intervals
+    #beta_CIs = []                                   # List to contain the confidence intervals
+    beta_CIs = np.zeros((p,2))                      # Array to contain the confidence intervals
 
     # Find confidence intervals and print beta values
     print("\nRIDGE REGRESSION ON WHOLE DATASET WITH OPTIMAL PARAMETERS")
     print(f"Lambda = {opt_lambda:.6f}, polynomial degree= = {opt_degree}")
+
     print("\nCoefficient estimations \t Confidence interval")
+    #for i in range(p):
+    #    beta_CIs.append([beta[i]-1.96*np.sqrt(beta_var[i]/n), beta[i]+1.96*np.sqrt(beta_var[i]/n)])
+    #    print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i]}")
     for i in range(p):
-        beta_CIs.append([beta[i]-1.96*np.sqrt(beta_var[i]/n), beta[i]+1.96*np.sqrt(beta_var[i]/n)])
-        print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i]}")
+        beta_CIs[i,0] = beta[i]-1.96*np.sqrt(beta_var[i]/n)
+        beta_CIs[i,1] = beta[i]+1.96*np.sqrt(beta_var[i]/n)
+        print(f"Beta_{i:2d} = {beta[i]:12.8f} \t\t {beta_CIs[i,:]}")
+
+    # ---Make plot of the betas and the CIs---
+    beta_lower = beta_CIs[:,0]
+    beta_upper = beta_CIs[:,1]
+    indexes = np.arange(p)
+    plt.plot(indexes, beta, 'ro', label='betas')
+    plt.plot(indexes, beta_upper, 'b+')
+    plt.plot(indexes, beta_lower, 'b+')
+    plt.xlabel('beta index')
+    save_fig('terrain-ridge-beta-values-plot')
 
     print('\a') # Make alert sound to indicate code is finally done
     return
 
-#linreg_CV()
-ridge_CV()
+linreg_CV()
+#ridge_CV()
