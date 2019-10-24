@@ -14,6 +14,7 @@ from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.preprocessing import PolynomialFeatures,StandardScaler, OneHotEncoder
 from sklearn.pipeline import make_pipeline
 from sklearn.compose import ColumnTransformer
+from sklearn.datasets import load_breast_cancer
 
 # Import plotting tools
 from mpl_toolkits.mplot3d import Axes3D
@@ -23,16 +24,11 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 
 
-class credit_data:
-    def __init__(self, credit_card_filename):
-        nanDict = {}
-
-        df = pd.read_excel(filename, header=1, skiprows=0, index_col=0, na_values=nanDict)
-        df.rename(index=str, columns={"default payment next month": "defaultPaymentNextMonth"}, inplace=True)
-
+class data_manager:
+    def __init__(self, X,y):
             # Features and targets
-        self.X = df.loc[:, df.columns != 'defaultPaymentNextMonth'].values
-        self.y = df.loc[:, df.columns == 'defaultPaymentNextMonth'].values
+        self.X = X
+        self.y = y
 
         self.n = len(self.y)         # Number of observations
         self.p = np.shape(self.X)[1] # Number of explanatory variables
@@ -93,33 +89,58 @@ class credit_data:
         return test_indexes, train_indexes
 
 
-
-#class Logreg(credit_data):
-#    def logistic_regression(self):
-
 class solver:
     def __init__(self, credit_card_object):
         self.cred = credit_card_object
         self.Xtest, self.Xtrain, self.ytest, self.ytrain = self.cred.split_data()
 
 
-    def stocastic_gradient_descent(self, Niter):
+    def stocastic_gradient_descent(self, Niter, seed = None):
+
+        if seed != None:
+            np.random.seed(seed)
 
         sGD_classifier = SGDClassifier(loss = 'log',
-        penalty = 'l2', max_iter = Niter, eta0 = 0.0, shuffle = True, n_iter_no_change = 10)
+        penalty = 'l2', max_iter = Niter, eta0 = 0.001,fit_intercept = True ,
+        shuffle = True,random_state = seed, n_iter_no_change = 5)
         sGD_classifier.fit(self.Xtrain,self.ytrain.ravel())
 
-        return sGD_classifier.get_params()
 
+        ypred = sGD_classifier.predict(self.Xtest)
+        R2_score = self.R2(self.ytest, ypred)
+        mSE_score = self.MSE(self.ytest, ypred)
+        beta_coeff = sGD_classifier.coef_
+        print(len(beta_coeff[0]))
+        print(sGD_classifier.intercept_)
+        print(f" MSE = {mSE_score}, R2-score = {R2_score}")
+
+    def R2(self, z, z_pred):
+        """ Function to evaluate the R2-score """
+        z = np.ravel(z)
+        z_pred = np.ravel(z_pred)
+        mean = (1/len(z))*sum(z)
+        r2 = 1 - (sum((z-z_pred)**2)/sum((z - mean)**2))
+        return r2
+
+    def MSE(self, z, z_pred):
+        """ Function to evaluate the Mean Squared Error """
+        z = np.ravel(z)
+        z_pred = np.ravel(z_pred)
+        mse = (1/len(z))*np.sum((z-z_pred)**2)
+        return mse
 
 
 
 
 if __name__== "__main__":
-    cwd = os.getcwd() # Current working directory
-    filename = cwd + '/default of credit card clients.xls'
-    cred = credit_data("default of credit card clients.xls")
+    #cwd = os.getcwd() # Current working directory
+    #filename = cwd + '/default of credit card clients.xls'
+    #cred = data_manager("default of credit card clients.xls")
 
+    cancer = load_breast_cancer()
+    X = cancer.data
+    y = cancer.target
+    analyze_data = data_manager(X,y)
 
-    integrate = solver(cred)
-    print(integrate.stocastic_gradient_descent(1000))
+    integrate = solver(analyze_data)
+    integrate.stocastic_gradient_descent(100000)
