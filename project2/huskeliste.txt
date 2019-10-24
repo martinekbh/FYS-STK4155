@@ -1,0 +1,5 @@
+
+---------HUSKELISTE----------
+
+
+- Spør på gruppetime: Burde vi ha fit_intercept=True eller False i SGDclassifier?
