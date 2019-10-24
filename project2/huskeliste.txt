@@ -3,3 +3,5 @@
 
 
 - Spør på gruppetime: Burde vi ha fit_intercept=True eller False i SGDclassifier?
+- Må vi skalere data? Hvorfor skaleres kun Xtrain og Xtest (ikke y)?
+- Må vi skrive egen stochastic gradient descent metode?

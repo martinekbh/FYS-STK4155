@@ -60,8 +60,13 @@ class data_manager:
         """
         test_index, train_index = self.test_train_index(self.n)
 
-        self.X_test  = self.X[test_index]
-        self.X_train = self.X[train_index]
+        # Scale data
+        X_train = self.X[train_index]
+        scaler = StandardScaler()
+        scaler.fit(X_train)
+
+        self.X_test  = scaler.transform(self.X[test_index])
+        self.X_train = scaler.transform(self.X[train_index])
         self.y_train = self.y[train_index]
         self.y_test  = self.y[test_index]
 
@@ -92,6 +97,7 @@ class data_manager:
 class solver:
     def __init__(self, credit_card_object):
         self.cred = credit_card_object
+
         self.Xtest, self.Xtrain, self.ytest, self.ytrain = self.cred.split_data()
 
 
