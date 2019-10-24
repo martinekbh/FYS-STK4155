@@ -54,18 +54,7 @@ class data_manager:
                 train_data: Ndarray
 
         """
-        """Trainsize = 1 - Testsize
-        print(np.shape(self.X), np.shape(self.y))
-
-        X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size = Testsize, random_state = seed)
-
-        self.Xtrain = X_train
-        self.Xtest = X_test
-        self.ytrain = y_train
-        self.ytest = y_test
-
-        """
-        test_index, train_index = self.test_train_index(self.n)
+        test_index, train_index = self.test_train_index(self.n, test_size = Testsize, seed=seed)
 
         # Scale data
         X_train = self.X[train_index]
@@ -102,20 +91,20 @@ class data_manager:
 
 
 class solver:
-    def __init__(self, credit_card_object):
+    def __init__(self, credit_card_object, seed = None):
         self.cred = credit_card_object
 
-        self.Xtest, self.Xtrain, self.ytest, self.ytrain = self.cred.split_data()
+        self.seed = seed
+        self.Xtest, self.Xtrain, self.ytest, self.ytrain = self.cred.split_data(seed = self.seed)
         self.predictors = self.cred.predictors
 
-
-    def stocastic_gradient_descent(self, Niter, seed = None, print_coeffs = False):
-        if seed != None:
-            np.random.seed(seed)
+    def stocastic_gradient_descent(self, Niter, print_coeffs = False):
+        #if seed != None:
+        #    np.random.seed(seed)
 
         sGD_classifier = SGDClassifier(loss = 'log',
-        penalty = 'l2', max_iter = Niter, eta0 = 0.001,fit_intercept = True ,
-        shuffle = True,random_state = seed, n_iter_no_change = 5)
+                    penalty = 'l2', max_iter = Niter, eta0 = 0.001, fit_intercept = True,
+                    shuffle = True, random_state = self.seed, n_iter_no_change = 5)
         sGD_classifier.fit(self.Xtrain,self.ytrain.ravel())
 
         ypred = sGD_classifier.predict(self.Xtest)
@@ -165,14 +154,20 @@ class solver:
 
 
 if __name__== "__main__":
+    # Import credit card data
     #cwd = os.getcwd() # Current working directory
     #filename = cwd + '/default of credit card clients.xls'
     #cred = data_manager("default of credit card clients.xls")
 
+    # Import breast cancer data
     cancer = load_breast_cancer()
     X = cancer.data
     y = cancer.target
+
+    # Analyse data with logistic regression
     analyze_data = data_manager(X,y, predictors = cancer.feature_names)
 
-    integrate = solver(analyze_data)
-    integrate.stocastic_gradient_descent(100000, seed = 1, print_coeffs = True)
+    integrate = solver(analyze_data, seed = 111)
+    integrate.stocastic_gradient_descent(100000, print_coeffs = True)
+
+
