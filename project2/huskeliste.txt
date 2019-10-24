@@ -1,7 +1,8 @@
 
----------HUSKELISTE----------
-
+---------HUSKELISTE / ARBEIDSOPPGAVER----------
 
 - Spør på gruppetime: Burde vi ha fit_intercept=True eller False i SGDclassifier?
-- Må vi skalere data? Hvorfor skaleres kun Xtrain og Xtest (ikke y)?
+- Må vi skalere data? Hvorfor skaleres kun Xtrain og Xtest (ikke y)? Se
+  split_data() metoden i data_manager klassen i analyze.py (ca linje 63).
 - Må vi skrive egen stochastic gradient descent metode?
+- Vi må skrive cost function og design matrisen vi bruker (for kreftdata)

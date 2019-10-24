@@ -25,13 +25,20 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 
 class data_manager:
-    def __init__(self, X,y):
+    def __init__(self, X, y, predictors = 0):
             # Features and targets
         self.X = X
         self.y = y
 
         self.n = len(self.y)         # Number of observations
         self.p = np.shape(self.X)[1] # Number of explanatory variables
+
+        # Whacky method to get predictor names correct
+        if isinstance(predictors, int):
+            self.predictors = np.arange(1,self.p+1)
+
+        else:
+            self.predictors = predictors
 
 
     def split_data(self, Testsize = 0.33, seed = None):
@@ -99,10 +106,10 @@ class solver:
         self.cred = credit_card_object
 
         self.Xtest, self.Xtrain, self.ytest, self.ytrain = self.cred.split_data()
+        self.predictors = self.cred.predictors
 
 
-    def stocastic_gradient_descent(self, Niter, seed = None):
-
+    def stocastic_gradient_descent(self, Niter, seed = None, print_coeffs = False):
         if seed != None:
             np.random.seed(seed)
 
@@ -111,14 +118,30 @@ class solver:
         shuffle = True,random_state = seed, n_iter_no_change = 5)
         sGD_classifier.fit(self.Xtrain,self.ytrain.ravel())
 
-
         ypred = sGD_classifier.predict(self.Xtest)
+
+        # Scores
         R2_score = self.R2(self.ytest, ypred)
         mSE_score = self.MSE(self.ytest, ypred)
-        beta_coeff = sGD_classifier.coef_
-        print(len(beta_coeff[0]))
-        print(sGD_classifier.intercept_)
+        accuracy = self.accuracy(self.ytest, ypred)
         print(f" MSE = {mSE_score}, R2-score = {R2_score}")
+        print(f"accuracy = {accuracy}")
+
+
+        if print_coeffs == True:
+            beta_coeff = sGD_classifier.coef_[0]    # This is a nested list for some reason
+            beta_intercept = sGD_classifier.intercept_[0]
+            self.print_coeff_table(beta_coeff, beta_intercept)
+
+    def print_coeff_table(self, beta_coeff, beta_intercept):
+        from prettytable import PrettyTable
+        table = PrettyTable()
+        column_names = ["Predictor", "Coefficient"]
+        table.add_column(column_names[0], self.predictors)
+        table.add_column(column_names[1], beta_intercept+beta_coeff)
+        print(table)
+
+        return
 
     def R2(self, z, z_pred):
         """ Function to evaluate the R2-score """
@@ -135,6 +158,9 @@ class solver:
         mse = (1/len(z))*np.sum((z-z_pred)**2)
         return mse
 
+    def accuracy(self, y, y_pred):
+        return np.sum(y == y_pred)/len(y)
+
 
 
 
@@ -146,7 +172,7 @@ if __name__== "__main__":
     cancer = load_breast_cancer()
     X = cancer.data
     y = cancer.target
-    analyze_data = data_manager(X,y)
+    analyze_data = data_manager(X,y, predictors = cancer.feature_names)
 
     integrate = solver(analyze_data)
-    integrate.stocastic_gradient_descent(100000)
+    integrate.stocastic_gradient_descent(100000, seed = 1, print_coeffs = True)
