@@ -14,7 +14,7 @@ print(len(y))
 X_train, X_test, y_train, y_test = train_test_split(X,y,random_state=0)
 logreg = LogisticRegression(solver='liblinear')
 logreg.fit(X_train, y_train)
-print("Test set accuracy: {:.2f}".format(logreg.score(X_test,y_test)))
+print("Test set accuracy: {:f}".format(logreg.score(X_test,y_test)))
 
 # Scale data
 from sklearn.preprocessing import StandardScaler
@@ -23,5 +23,6 @@ scaler.fit(X_train)
 X_train_scaled = scaler.transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 logreg.fit(X_train_scaled, y_train)
-print("Test set accuracy scaled data: {:.2f}".format(logreg.score(X_test_scaled,y_test)))
+print("Test set accuracy scaled data: {:f}".format(logreg.score(X_test_scaled,y_test)))
+
 
