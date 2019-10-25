@@ -121,7 +121,7 @@ class solver:
             batch_length = int(matrix_length/M)
 
         mini_row_matrix = []
-        for i in range(1, matrix_length, batch_length):
+        for i in range(0, matrix_length, batch_length):
             print(i)
             mini_row_matrix.append(matrix_A[i-1:M*batch_length,:])
 
