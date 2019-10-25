@@ -73,6 +73,15 @@ class data_manager:
         return self.X_test, self.X_train, self.y_test, self.y_train
 
 
+    def create_design_matrix(self, regression_type):
+        if regression_type == "log":
+            one_vector = np.ones(np.shape(self.X[:,0])).reshape(len(X[:,0]),1)
+            A = np.concatenate((one_vector,self.X), axis = 1)
+            self.A  = A
+            #print(len(A[:,0]))
+
+            return self.A
+
 
     def test_train_index(self, n, test_size=0.33, seed=None):
         """
@@ -99,6 +108,31 @@ class solver:
         self.cred = credit_card_object
 
         self.Xtest, self.Xtrain, self.ytest, self.ytrain = self.cred.split_data()
+
+
+    def minibatch(self, M):
+        print(self.Xtrain)
+        matrix_A = self.Xtrain
+        matrix_length = len(matrix_A[:,0])
+        print("---------------------")
+        if M > matrix_length:
+            raise ValueError("The size of batches cannot be larger than the matrix length")
+        else:
+            batch_length = int(matrix_length/M)
+
+        mini_row_matrix = []
+        for i in range(1, matrix_length, batch_length):
+            print(i)
+            mini_row_matrix.append(matrix_A[i-1:M*batch_length,:])
+
+        print(mini_row_matrix[0])
+
+
+
+
+
+    #def SGD_integrator(self, Niter, seed = None):
+
 
 
     def stocastic_gradient_descent(self, Niter, seed = None):
@@ -147,6 +181,8 @@ if __name__== "__main__":
     X = cancer.data
     y = cancer.target
     analyze_data = data_manager(X,y)
+    analyze_data.create_design_matrix('log')
 
     integrate = solver(analyze_data)
-    integrate.stocastic_gradient_descent(100000)
+    integrate.minibatch(2)
+    #integrate.stocastic_gradient_descent(100000)
