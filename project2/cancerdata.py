@@ -25,5 +25,4 @@ X_test_scaled = scaler.transform(X_test)
 logreg.fit(X_train_scaled, y_train)
 print("Test set accuracy scaled data: {:f}".format(logreg.score(X_test_scaled,y_test)))
 
-print(len(cancer.feature_names))
 
