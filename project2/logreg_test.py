@@ -130,7 +130,7 @@ test = temp
 """
 
 # evaluate algorithm
-n_folds = 5
+#n_folds = 5
 l_rate = 0.1
 n_epoch = 100
 #pred = logistic_regression(train, test, l_rate, n_epoch)
@@ -191,6 +191,7 @@ intercep = np.ones((len(X[:,0]),1))
 X_train = np.concatenate((np.ones((len(X_train), 1)), X_train), axis=1)
 X_test = np.concatenate((np.ones((len(X_test), 1)), X_test), axis=1)
 beta = mSGD(X_train, y_train, n_epoch, n_minibatches = 30, seed=1001)
+# ARAM: Jeg tror vi mangler intercept i beta?
 pred = np.round(1/(1 + np.exp(-X_test@beta))).ravel()
 acc = np.sum( y_test == pred )/len(y_test)
 print(acc)

@@ -101,10 +101,17 @@ class data_manager:
 
 class solver:
     def __init__(self, credit_card_object, seed = None):
+        self.seed = seed
+        if seed != None:
+            np.random.seed(seed)
+
         self.cred = credit_card_object
 
+        # the split_data() function also scales the data
         self.Xtest, self.Xtrain, self.ytest, self.ytrain = self.cred.split_data()
+        self.predictors = self.cred.predictors  # Names of the predictors
 
+        
 
     def minibatch(self, M):
         print(self.Xtrain)
@@ -124,19 +131,53 @@ class solver:
         print(mini_row_matrix[0])
 
 
-
-
-
     #def SGD_integrator(self, Niter, seed = None):
 
+    def svd(self, n_epochs, n_minibatches=None, print_coeffs=False):
+        Xtrain = self.Xtrain; Xtest = self.Xtest; ytrain = self.ytrain; ytest = self.ytest
+        n = len(Xtrain)
 
+        if n_minibatches == None: # Default number of minibatches is n
+            n_minibatches = n
+            batch_size = 1
 
-    def stocastic_gradient_descent(self, Niter, seed = None):
+        else:
+            batch_size = int(n / n_minibatches)
 
-        self.seed = seed
-        self.Xtest, self.Xtrain, self.ytest, self.ytrain = self.cred.split_data(seed = self.seed)
-        self.predictors = self.cred.predictors
+        beta = np.random.randn(len(Xtrain[0]), 1) # why random?
 
+        for epoch in range(n_epochs):   # epoch
+
+            j = 1
+            for i in range(n_minibatches):          # minibatches
+                random_index = np.random.randint(n_minibatches)
+
+                xi = Xtrain[random_index * batch_size: random_index*batch_size + batch_size]
+                yi = ytrain[random_index * batch_size: random_index*batch_size + batch_size]
+                yi = yi.reshape((batch_size, 1))
+
+                p = 1/(1 + np.exp(-xi @ beta))
+                gradient = -xi.T @ (yi - p) 
+                l = self.learning_schedule(epoch*n_minibatches + i)
+                beta = beta - l * gradient
+                self.beta = beta
+
+        if print_coeffs == True:
+            #beta_coeff = sGD_classifier.coef_[0]    # This is a nested list for some reason
+            #beta_intercept = sGD_classifier.intercept_[0]
+            self.print_coeff_table(beta[0], beta[1:])
+
+        return beta
+
+    def learning_schedule(self, t, t0=5, t1=50):
+        return t0/(t+t1)
+
+    def predict(self, x, beta=None):
+        if beta == None:
+            beta = self.beta
+
+        pred = np.round(1/(1 + np.exp(-x@beta))).ravel()
+        return pred
 
     def stocastic_gradient_descent(self, Niter, print_coeffs = False):
         #if seed != None:
@@ -203,20 +244,32 @@ if __name__== "__main__":
     cancer = load_breast_cancer()
     X = cancer.data
     y = cancer.target
-<<<<<<< HEAD
+#<<<<<<< HEAD
     analyze_data = data_manager(X,y)
     analyze_data.create_design_matrix('log')
 
     integrate = solver(analyze_data)
     integrate.minibatch(2)
     #integrate.stocastic_gradient_descent(100000)
-=======
+#=======
 
     # Analyse data with logistic regression
-    analyze_data = data_manager(X,y, predictors = cancer.feature_names)
+    datapack = data_manager(X,y, predictors = cancer.feature_names)
 
-    integrate = solver(analyze_data, seed = 111)
-    integrate.stocastic_gradient_descent(100000, print_coeffs = True)
+    analyze = solver(datapack, seed = 1001)
+
+    l_rate = 0.1
+    n_epochs = 100
+    beta = analyze.svd(n_epochs, n_minibatches=30)
+    # Martine: Jeg tror vi mangler intercept i beta?
+
+    pred = analyze.predict(analyze.Xtest)
+    acc = analyze.accuracy(analyze.ytest, pred)
+    print(acc)
 
 
->>>>>>> c8b0a3513e540eccc9be0e6fd5e378eb731cd594
+
+    #integrate.stocastic_gradient_descent(100000, print_coeffs = True)
+
+
+#>>>>>>> c8b0a3513e540eccc9be0e6fd5e378eb731cd594
