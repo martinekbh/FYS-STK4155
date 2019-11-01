@@ -133,7 +133,7 @@ class solver:
 
     #def SGD_integrator(self, Niter, seed = None):
 
-    def svd(self, n_epochs, n_minibatches=None, print_coeffs=False):
+    def sgd(self, n_epochs, n_minibatches=None, print_coeffs=False):
         Xtrain = self.Xtrain; Xtest = self.Xtest; ytrain = self.ytrain; ytest = self.ytest
         n = len(Xtrain)
 
@@ -260,7 +260,7 @@ if __name__== "__main__":
 
     l_rate = 0.1
     n_epochs = 100
-    beta = analyze.svd(n_epochs, n_minibatches=30)
+    beta = analyze.sgd(n_epochs, n_minibatches=30)
     # Martine: Jeg tror vi mangler intercept i beta?
 
     pred = analyze.predict(analyze.Xtest)
