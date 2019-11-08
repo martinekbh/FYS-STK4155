@@ -54,7 +54,6 @@ lmbd_vals = np.logspace(-8,3,12)
 nn_grid = np.zeros((len(eta_vals), len(lmbd_vals)), dtype=object)
 epochs = 100
 batch_size = 50
-n_hidden_neurons = []
 n_layers = 1
 n_hidden_neurons = [1]
 
