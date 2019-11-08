@@ -1,16 +1,17 @@
 import numpy as np
+import scipy
 
 class NeuralNetwork:
-    def __init__(self, X, y, 
+    def __init__(self, X, y,
         n_layers = 1,
-        n_hidden_neurons=[50], 
-        n_categories = 2, 
-        epochs=10, batch_size=100, 
-        eta=0.1, lmbd=0.0, 
+        n_hidden_neurons=[50],
+        n_categories = 2,
+        epochs=10, batch_size=100,
+        eta=0.1, lmbd=0.0,
         problem='class',
         activation='sigmoid',
         seed = None):
-        
+
         # data
         self.X = X
         self.y = y              # y must be the shape of OneHotEncoder
@@ -100,7 +101,7 @@ class NeuralNetwork:
 
     def activation_func(self, x):
         if self.activation == 'sigmoid':
-            return 1/(1 + np.exp(-x))
+            return scipy.special.expit(x)
         elif self.activation == 'tanh':
             return np.tanh(x)
 
@@ -112,7 +113,7 @@ class NeuralNetwork:
     def softmax(self, x):
         #x = np.array(x, dtype=float128)
         return np.exp(x)/(np.sum(np.exp(x), axis=1, keepdims=True))
-
+    """
     def back_propagation(self):
         a_L = self.probabilities
         error_output = a_L * (1 - a_L )*(a_L - self.y)
@@ -127,16 +128,16 @@ class NeuralNetwork:
         error_hidden = []
         self.hidden_weights_gradient = []
         self.hidden_bias_gradient = []
-        
+
         # Calculate error and gradients of the hidden layers
         err = np.matmul(error_output, self.output_weights.T) * a_h * (1 - a_h)
         for l in range((self.n_layers-2), -1, -1):
             #print(f"l: {l}")
-            error_hidden.insert(0,err) 
+            error_hidden.insert(0,err)
             self.hidden_weights_gradient.insert( 0, np.matmul(self.a_h[l].T, err) )
             self.hidden_bias_gradient.insert( 0, np.sum(err, axis=0).reshape(len(err[0]), 1) )
 
-            err = np.matmul(err, self.hidden_weights[l+1].T) * self.a_h[l] * (1 - self.a_h[l]) 
+            err = np.matmul(err, self.hidden_weights[l+1].T) * self.a_h[l] * (1 - self.a_h[l])
 
         self.hidden_weights_gradient.insert( 0, np.matmul(self.X.T, err) )
         self.hidden_bias_gradient.insert( 0, np.sum(err, axis=0).reshape(len(err[0]),1) )
@@ -147,12 +148,13 @@ class NeuralNetwork:
             for i in range(len(self.hidden_weights_gradient)): # Maybe -1 on the range?
                 self.hidden_weights_gradient[i] += self.lmbd * self.hidden_weights[i]
 
-        # Update the weights and biases 
+        # Update the weights and biases
         self.output_weights -= self.eta * self.output_weights_gradient
         self.output_bias -= self.eta * self.output_bias_gradient
         for i in range(len(self.hidden_weights)):
             self.hidden_weights[i] -= self.eta * self.hidden_weights_gradient[i]
             self.hidden_bias[i] -= self.eta * self.hidden_bias_gradient[i]
+        """
 
     def back_propagation_classification(self):
         a_L = self.probabilities
@@ -168,12 +170,12 @@ class NeuralNetwork:
         error_hidden = []
         self.hidden_weights_gradient = []
         self.hidden_bias_gradient = []
-        
+
         # Calculate error and gradients of the hidden layers
         f_z_derived = self.activation_derivative(a_h)
         err = np.matmul(error_output, self.output_weights.T) * f_z_derived
         for l in range((self.n_layers-2), -1, -1):
-            error_hidden.insert(0,err) 
+            error_hidden.insert(0,err)
             self.hidden_weights_gradient.insert( 0, np.matmul(self.a_h[l].T, err) )
             self.hidden_bias_gradient.insert( 0, np.sum(err, axis=0).reshape(len(err[0]), 1) )
             f_z_derived = self.activation_derivative(self.a_h[l])
@@ -188,7 +190,7 @@ class NeuralNetwork:
             for i in range(len(self.hidden_weights_gradient)): # Maybe -1 on the range?
                 self.hidden_weights_gradient[i] += self.lmbd * self.hidden_weights[i]
 
-        # Update the weights and biases 
+        # Update the weights and biases
         self.output_weights -= self.eta * self.output_weights_gradient
         self.output_bias -= self.eta * self.output_bias_gradient
         for i in range(len(self.hidden_weights)):
@@ -209,12 +211,12 @@ class NeuralNetwork:
         error_hidden = []
         self.hidden_weights_gradient = []
         self.hidden_bias_gradient = []
-        
+
         # Calculate error and gradients of the hidden layers
         f_z_derived = self.activation_derivative(a_h)
         err = np.matmul(error_output, self.output_weights.T) * f_z_derived
         for l in range((self.n_layers-2), -1, -1):
-            error_hidden.insert(0,err) 
+            error_hidden.insert(0,err)
             self.hidden_weights_gradient.insert( 0, np.matmul(self.a_h[l].T, err) )
             self.hidden_bias_gradient.insert( 0, np.sum(err, axis=0).reshape(len(err[0]), 1) )
             f_z_derived = self.activation_derivative(self.a_h[l])
@@ -229,7 +231,7 @@ class NeuralNetwork:
             for i in range(len(self.hidden_weights_gradient)): # Maybe -1 on the range?
                 self.hidden_weights_gradient[i] += self.lmbd * self.hidden_weights[i]
 
-        # Update the weights and biases 
+        # Update the weights and biases
         self.output_weights -= self.eta * self.output_weights_gradient
         self.output_bias -= self.eta * self.output_bias_gradient
         for i in range(len(self.hidden_weights)):
@@ -258,12 +260,12 @@ class NeuralNetwork:
                 yi = yi.reshape((batch_size, 1))
 
                 p = 1/(1 + np.exp(-xi @ beta))
-                gradient = -xi.T @ (yi - p) 
+                gradient = -xi.T @ (yi - p)
                 l = self.learning_schedule(epoch*n_minibatches + i)
                 beta = beta - l * gradient
                 self.beta = beta
 
-        return beta 
+        return beta
 
     def predict(self, X):
         probabilities = self.feed_forward_out(X)
@@ -275,7 +277,7 @@ class NeuralNetwork:
 
     def train(self):
         data_indices = np.arange(self.n_inputs)
-        
+
         if self.problem == "class":
             for i in range(self.epochs):
                 for j in range(self.iterations):
@@ -299,4 +301,3 @@ class NeuralNetwork:
                     self.y = self.y_full_data[chosen_datapoints]
                     self.feed_forward()
                     self.back_propagation_regression()
-

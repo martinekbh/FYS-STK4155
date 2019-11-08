@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import  train_test_split 
+from sklearn.model_selection import  train_test_split
 from sklearn.linear_model import LogisticRegression
 
 # Import own code
@@ -46,8 +46,23 @@ encoder = OneHotEncoder(categories='auto')
 encoder.fit(y_train)
 y_train = encoder.transform(y_train).toarray()
 
+# Test Neural NeuralNetwork = logreg with 1 hidden node and layer?
+eta = 0.1
+lmbd = 0
+epochs = 100
+batchsize = int(len(y)/30)
+Nhidden_layer = 1
+nhidden_neuron = [1]
+neural_net = NeuralNetwork(X_train, y_train,eta = eta, lmbd = lmbd,
+epochs = epochs, batch_size = batchsize, n_layers=Nhidden_layer, n_hidden_neurons = nhidden_neuron, seed = 1)
+neural_net.train()
+pred = neural_net.predict(X_test)
+accuracy_nn = accuracy(y_test,pred)
 
-# DO GRID SEARCH to find optinal FFNN hyperparameters lmbd and eta 
+print(accuracy_nn)
+exit()
+
+# DO GRID SEARCH to find optinal FFNN hyperparameters lmbd and eta
 eta_vals = np.logspace(-8,3,12)
 lmbd_vals = np.logspace(-8,3,12)
 
@@ -60,13 +75,13 @@ n_hidden_neurons = [1]
 acc_scores = np.zeros((len(eta_vals), len(lmbd_vals)))
 for i, eta in enumerate(eta_vals):
     for j,lmbd in enumerate(lmbd_vals):
-        nn = NeuralNetwork(X_train, y_train, eta=eta, lmbd=lmbd, 
+        nn = NeuralNetwork(X_train, y_train, eta=eta, lmbd=lmbd,
                 epochs=epochs, batch_size=batch_size, n_layers=n_layers, n_hidden_neurons=n_hidden_neurons)
         nn.train()
         nn_grid[i][j] = nn
         test_predict = nn.predict(X_test)
         acc = accuracy(y_test, test_predict)
-        
+
         #print(f"Learning rate = {eta}")
         #print(f"Lambda = {lmbd}")
         #print(f"Accuracy score on test set: {acc}\n")
@@ -89,7 +104,7 @@ xmin = np.log10(eta_vals[0])
 ymax = np.log10(lmbd_vals[-1])
 ymin = np.log10(lmbd_vals[0])
 fig, ax = plt.subplots()
-ax.matshow(acc_scores, cmap=plt.cm.Blues, 
+ax.matshow(acc_scores, cmap=plt.cm.Blues,
             extent = [xmin-0.5, xmax+0.5, ymax+0.5, ymin-0.5],
             interpolation=None, aspect='auto', origin='upper')
 for i in range(len(eta_vals)):
@@ -101,4 +116,3 @@ for i in range(len(eta_vals)):
 plt.ylabel("log10(learning rate)")
 plt.xlabel("log10(lambda)")
 plt.show()
-
