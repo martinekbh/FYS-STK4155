@@ -11,6 +11,11 @@ PROJECT_ROOT_DIR = "Results"
 FIGURE_ID = "Results/FigureFiles"
 DATA_ID = "DataFiles/"
 
+def accuracy(y, pred):
+    y = y.ravel()
+    pred = pred.ravel()
+    return np.sum(y == pred) / len(y)
+
 # Load dataset
 cancer = load_breast_cancer()
 X = cancer.data
@@ -29,15 +34,11 @@ X_test_scaled = scaler.transform(X_test)
 
 # Logreg with scikit
 logreg = LogisticRegression(solver='liblinear')
-logreg.fit(X_train, y_train)
-print("Test set accuracy: {:f}".format(logreg.score(X_test,y_test)))
-logreg.fit(X_train_scaled, y_train)
-print("Test set accuracy scaled data: {:f}".format(logreg.score(X_test_scaled,y_test)))
+logreg.fit(X_train, y_train.ravel())
+print("Test set accuracy: {:f}".format(logreg.score(X_test,y_test.ravel())))
+logreg.fit(X_train_scaled, y_train.ravel())
+print("Test set accuracy scaled data: {:f}".format(logreg.score(X_test_scaled,y_test.ravel())))
 
-def accuracy(y, pred):
-    y = y.ravel()
-    pred = pred.ravel()
-    return np.sum(y == pred) / len(y)
 
 # Use One Hot Encoder on y_train
 from sklearn.preprocessing import OneHotEncoder
@@ -52,10 +53,10 @@ lmbd_vals = np.logspace(-8,3,12)
 
 nn_grid = np.zeros((len(eta_vals), len(lmbd_vals)), dtype=object)
 epochs = 100
-batch_size = 100
+batch_size = 50
 n_hidden_neurons = []
-n_layers = 5
-n_hidden_neurons = [50, 40, 30, 20, 10]
+n_layers = 1
+n_hidden_neurons = [1]
 
 acc_scores = np.zeros((len(eta_vals), len(lmbd_vals)))
 for i, eta in enumerate(eta_vals):
@@ -67,9 +68,9 @@ for i, eta in enumerate(eta_vals):
         test_predict = nn.predict(X_test)
         acc = accuracy(y_test, test_predict)
         
-        print(f"Learning rate = {eta}")
-        print(f"Lambda = {lmbd}")
-        print(f"Accuracy score on test set: {acc}\n")
+        #print(f"Learning rate = {eta}")
+        #print(f"Lambda = {lmbd}")
+        #print(f"Accuracy score on test set: {acc}\n")
         acc_scores[i][j] = acc
 
 
@@ -82,7 +83,7 @@ print(f"Learning rate={opt_eta}, Lambda={opt_lmbd}")
 print(f"Test: acc={acc_scores[opt_eta_index, opt_lmbd_index]}")
 
 
-# PLOT
+# PLOT accuracy vs. learning rate and lambda
 import matplotlib.pyplot as plt
 xmax = np.log10(eta_vals[-1])
 xmin = np.log10(eta_vals[0])

@@ -94,6 +94,7 @@ class NeuralNetwork:
         z_o = np.matmul(a_h, self.output_weights) + self.output_bias.T
         exp_term = np.exp(z_o)
         probabilities = exp_term / np.sum(exp_term, axis=1, keepdims=True)
+        #probabilities = self.softmax(z_o)
         return probabilities
 
 
@@ -107,6 +108,10 @@ class NeuralNetwork:
         # Return derivative of activation function a = f(z)
         if self.activation == 'sigmoid':
             return a*(1-a)
+
+    def softmax(self, x):
+        #x = np.array(x, dtype=float128)
+        return np.exp(x)/(np.sum(np.exp(x), axis=1, keepdims=True))
 
     def back_propagation(self):
         a_L = self.probabilities
