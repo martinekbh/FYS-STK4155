@@ -96,14 +96,16 @@ class LogReg:
             self.print_coeff_table(beta_coeff, beta_intercept)
     '''
 
-    def print_coeff_table(self, beta_coeff, beta_intercept):
+    def print_coeff_table(self, beta_intercept, beta_coeff):
         from prettytable import PrettyTable
         table = PrettyTable()
+        intercept = np.array(["intercept"])
+        predictors = np.concatenate((intercept, self.predictors))
+        values = np.concatenate((np.array([beta_intercept]), beta_coeff)).ravel()
         column_names = ["Predictor", "Coefficient"]
-        table.add_column(column_names[0], self.predictors)
-        table.add_column(column_names[1], beta_intercept+beta_coeff)
+        table.add_column(column_names[0], predictors)
+        table.add_column(column_names[1], values)
         print(table)
-
         return
 
     '''
@@ -134,21 +136,23 @@ if __name__== "__main__":
     y = cancer.target
     n = len(y)
 
-    # Create design matrix
-    #one_vector = np.ones(np.shape(X[:,0])).reshape(len(X[:,0]),1)
-    one_vector = np.ones((n,1))
-    A = np.concatenate((one_vector, X), axis = 1)
 
     seed = 1        # Define seed
 
     # Set up training data
-    X_train, X_test, y_train, y_test = train_test_split(A, y, test_size=0.2, random_state=seed)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed)
 
     # Scale data
     scaler = StandardScaler()
     scaler.fit(X_train)
     X_test  = scaler.transform(X_test)
     X_train = scaler.transform(X_train)
+
+    # Create design matrix
+    one_vector = np.ones((len(y_train),1))
+    X_train = np.concatenate((one_vector, X_train), axis = 1)
+    one_vector = np.ones((len(y_test),1))
+    X_test = np.concatenate((one_vector, X_test), axis = 1)
 
     logreg = LogReg(X_train, y_train, predictor_names = cancer.feature_names)
 
