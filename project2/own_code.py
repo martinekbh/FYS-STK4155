@@ -39,8 +39,8 @@ def image_path(fig_id):
 def data_path(dat_id):
     return os.path.join(DATA_ID, dat_id)
 
-def save_fig(fig_id):
-    plt.savefig(image_path(fig_id) + ".png", format='png')
+def save_fig(fig_id, extension='png'):
+    plt.savefig(image_path(fig_id) + '.' + extension, format=extension)
 
 
 def FrankeFunction(x,y):
@@ -306,4 +306,7 @@ def make3Dplot_multiple(x, y, zlist, title=None, name=None, size=(25,10), show=T
         plt.close()
 
 
-
+def accuracy(y, pred):
+    y = y.ravel()
+    pred = pred.ravel()
+    return np.sum(y==pred)/len(y)

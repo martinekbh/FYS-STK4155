@@ -5,16 +5,19 @@ from sklearn.linear_model import LogisticRegression
 
 # Import own code
 from NeuralNetwork import NeuralNetwork
+from LogReg import LogReg
+from own_code import *
 
 # Where to save the figures and data files
 PROJECT_ROOT_DIR = "Results"
 FIGURE_ID = "Results/FigureFiles"
 DATA_ID = "DataFiles/"
-
+"""
 def accuracy(y, pred):
     y = y.ravel()
     pred = pred.ravel()
     return np.sum(y == pred) / len(y)
+"""
 
 # Load dataset
 cancer = load_breast_cancer()
@@ -32,14 +35,33 @@ scaler.fit(X_train)
 X_train_scaled = scaler.transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-# Logreg with scikit
+# ---LOGREG WITH SCIKIT (scaled and not scaled)---
+print("Scikit logistic regression results:")
 logreg = LogisticRegression(solver='liblinear')
 logreg.fit(X_train, y_train.ravel())
 print("Test set accuracy: {:f}".format(logreg.score(X_test,y_test.ravel())))
 logreg.fit(X_train_scaled, y_train.ravel())
 print("Test set accuracy scaled data: {:f}".format(logreg.score(X_test_scaled,y_test.ravel())))
 
+# Let X_train and X_test be scaled
+X_train = X_train_scaled
+X_test = X_test_scaled
 
+# ---LOGREG WITH OWN CLASS---
+# Add intercept column to the X-data
+one_vector = np.ones((len(y_train),1))
+X_train1 = np.concatenate((one_vector, X_train), axis = 1)
+one_vector = np.ones((len(y_test),1))
+X_test1 = np.concatenate((one_vector, X_test), axis = 1)
+# Do logistic regression
+logreg = LogReg(X_train1, y_train)
+logreg.sgd(n_epochs=100, n_minibatches=30)
+pred = logreg.predict(X_test1)
+acc = accuracy(y_test, pred)
+print(f"\nTest set accuracy with own logreg code: {acc}")
+
+
+# ---NEURAL NETWORK (OWN CLASS)---
 # Use One Hot Encoder on y_train
 from sklearn.preprocessing import OneHotEncoder
 encoder = OneHotEncoder(categories='auto')
@@ -59,18 +81,18 @@ neural_net.train()
 pred = neural_net.predict(X_test)
 accuracy_nn = accuracy(y_test,pred)
 
-print(accuracy_nn)
-exit()
+print(f"Test set accuracy with own Neural Network code: {accuracy_nn}")
 
 # DO GRID SEARCH to find optinal FFNN hyperparameters lmbd and eta
+print(f"\nPerforming grid test to find optimal learning rate and lambda for the Neural Network:")
 eta_vals = np.logspace(-8,3,12)
 lmbd_vals = np.logspace(-8,3,12)
 
 nn_grid = np.zeros((len(eta_vals), len(lmbd_vals)), dtype=object)
 epochs = 100
 batch_size = 50
-n_layers = 1
-n_hidden_neurons = [1]
+n_layers = 3
+n_hidden_neurons = [50,40,30]
 
 acc_scores = np.zeros((len(eta_vals), len(lmbd_vals)))
 for i, eta in enumerate(eta_vals):
@@ -115,4 +137,5 @@ for i in range(len(eta_vals)):
 
 plt.ylabel("log10(learning rate)")
 plt.xlabel("log10(lambda)")
+save_fig("NN_accuracy_map", extension='pdf')
 plt.show()
