@@ -9,3 +9,10 @@
   Hvis vi skriver egen SGD metode, må vi kanskje inkludere intercept i 
   Designmatrisen i programmet vårt. Dvs. at vi kanskje må inkludere en kolonne
   med 1-ere først i matrisen X i analyse.py
+
+- Neural Network:
+- Må fikse back_propagation() funksjonen i NeuralNetwork klassen i analyze.py
+  Feed_forward() skal funke nå.
+- THE CANCER DATA IS SKEWED! There are way more instances of people with
+  cancer, than without. The training data should have about 50/50 with/without
+  cancer.
