@@ -44,6 +44,13 @@ class NeuralNetwork:
                     "and must have length equal to the arg n_layers."
             raise ValueError(msg)
 
+        # Fix parameters for regression
+        if problem == 'reg':
+            self.n_categories = 1       # Number of nodes in output layer
+
+            #Make y a column vector
+            self.y = self.y.reshape(len(self.y),1)
+            self.y_full_data = self.y_full_data.reshape(len(self.y_full_data), 1) 
 
         # Set seed
         if seed != None:
@@ -72,17 +79,19 @@ class NeuralNetwork:
         a = self.X
 
         for l in range(self.n_layers):
-            #print(f"layer {l}")
-            #z = (self.hidden_weights[l].T @ a_h) + self.hidden_bias[l]
-            #self.z_h.append(z)
             z = np.matmul(a, self.hidden_weights[l]) + self.hidden_bias[l].T
             a = self.activation_func(z)
             self.a_h.append(a)
 
-        #self.z_o = (self.output_weights.T @ a_h) + self.output_bias.T
         self.z_o = np.matmul(a, self.output_weights) + self.output_bias.T
-        exp_term = np.exp(self.z_o)
-        self.probabilities = exp_term / (np.sum(exp_term, axis=1, keepdims=True))
+        #exp_term = np.exp(self.z_o)
+        #self.probabilities = exp_term / (np.sum(exp_term, axis=1, keepdims=True))
+        if self.problem == 'class':
+            self.probabilities = self.softmax(self.z_o)
+        elif self.problem == 'reg':
+            self.probabilities = self.activation_func(self.z_o)
+            #self.probabilities = self.z_o
+
 
     def feed_forward_out(self, X):
         """ Feed forward for output """
@@ -93,9 +102,14 @@ class NeuralNetwork:
             a_h = self.activation_func(z)
 
         z_o = np.matmul(a_h, self.output_weights) + self.output_bias.T
-        exp_term = np.exp(z_o)
-        probabilities = exp_term / np.sum(exp_term, axis=1, keepdims=True)
-        #probabilities = self.softmax(z_o)
+        #exp_term = np.exp(z_o)
+        #probabilities = exp_term / np.sum(exp_term, axis=1, keepdims=True)
+        if self.problem == 'class':
+            probabilities = self.softmax(z_o)
+        elif self.problem == 'reg':
+            probabilities = self.activation_func(z_o)
+            #probabilities = z_o
+
         return probabilities
 
 
@@ -104,15 +118,34 @@ class NeuralNetwork:
             return scipy.special.expit(x)
         elif self.activation == 'tanh':
             return np.tanh(x)
+        if self.activation == 'ReLU':       # rectified linear unit function
+            a = np.maximum(np.zeros((x.shape)), x)
+            return a
+        if self.activation == 'leakyReLU':
+            a = np.maximum(np.zeros((x.shape)), x)
+            a[ a == 0] = 0.01*x[a == 0]
+            return a
+
 
     def activation_derivative(self, a):
         # Return derivative of activation function a = f(z)
         if self.activation == 'sigmoid':
             return a*(1-a)
+        if self.activation == 'tanh':
+            return 1 - a**2
+        if self.activation == 'ReLU':
+            d = np.logical_not(np.greater(np.zeros((a.shape)), a))
+            return d.astype(int)
+        if self.activation == 'leakyReLU':
+            d = np.logical_not(np.greater(np.zeros((a.shape)), a)).astype(int)
+            d[ d==0 ] = 0.01
+            return d
+
 
     def softmax(self, x):
         #x = np.array(x, dtype=float128)
-        return np.exp(x)/(np.sum(np.exp(x), axis=1, keepdims=True))
+        exp_term = np.exp(x)
+        return exp_term/(np.sum(exp_term, axis=1, keepdims=True))
     """
     def back_propagation(self):
         a_L = self.probabilities
@@ -199,6 +232,8 @@ class NeuralNetwork:
 
     def back_propagation_regression(self):
         a_L = self.probabilities
+
+        # Why does this get overflow?
         error_output = a_L*(1- a_L)*(a_L - self.y)     # delta_L
         a_h = self.a_h[-1]
 
@@ -215,6 +250,10 @@ class NeuralNetwork:
         # Calculate error and gradients of the hidden layers
         f_z_derived = self.activation_derivative(a_h)
         err = np.matmul(error_output, self.output_weights.T) * f_z_derived
+
+        if np.any(np.isnan(a_L)):
+            exit()
+
         for l in range((self.n_layers-2), -1, -1):
             error_hidden.insert(0,err)
             self.hidden_weights_gradient.insert( 0, np.matmul(self.a_h[l].T, err) )
@@ -237,6 +276,8 @@ class NeuralNetwork:
         for i in range(len(self.hidden_weights)):
             self.hidden_weights[i] -= self.eta * self.hidden_weights_gradient[i]
             self.hidden_bias[i] -= self.eta * self.hidden_bias_gradient[i]
+
+        print(self.output_weights)
 
     def sgd(self, n_epochs, n_minibatches=None):
         Xtrain = self.Xtrain; Xtest = self.Xtest; ytrain = self.ytrain; ytest = self.ytest
@@ -269,7 +310,10 @@ class NeuralNetwork:
 
     def predict(self, X):
         probabilities = self.feed_forward_out(X)
-        return np.argmax(probabilities, axis=1)
+        if self.problem == 'class':
+            return np.argmax(probabilities, axis=1)
+        elif self.problem == 'reg':
+            return probabilities
 
     def predict_probabilities(self, X):
         probabilities = self.feed_forward_out(X)
@@ -292,7 +336,9 @@ class NeuralNetwork:
 
         if self.problem == "reg":
             for i in range(self.epochs):
+                print(f"epoch {i}")
                 for j in range(self.iterations):
+                    print(f"iteration {j}")
                     # Pick datapoint with repacement:
                     chosen_datapoints = np.random.choice(
                             data_indices, size=self.batch_size, replace=False)
