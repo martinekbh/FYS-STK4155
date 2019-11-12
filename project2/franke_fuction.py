@@ -15,8 +15,7 @@ y = np.arange(0, 1, 1/k)     # Numbers on y-axis
 #ymax = y/(np.amax(y))       # To normalize the y-axis
 x, y = np.meshgrid(x,y)      # Create meshgrid of x and y axes
 z = FrankeFunction(x,y)      # The z-values
-print(np.min(z), np.max(z))
-print('---------------')
+
 
 x1 = np.ravel(x)            # Flatten to vector
 y1 = np.ravel(y)            # Flatten to vector
@@ -74,7 +73,7 @@ z_pred = nn.predict(X_test)
 # Performance
 r2score = R2(z_test, z_pred)
 mse = MSE(z_test, z_pred)
-print("R2-score: ", r2score)        
+print("R2-score: ", r2score)
 print("MSE: ", mse)
 # Plot
 make3Dplot(x_test, y_test, z_pred.ravel(), name=f"ownNNreg_eta{eta}_lmbd{lmbd}_{n_layers}layers_{activation}", show=True)
@@ -83,13 +82,13 @@ make3Dplot(x_test, y_test, z_pred.ravel(), name=f"ownNNreg_eta{eta}_lmbd{lmbd}_{
 
 # --- SCIKIT LEARN NEURAL NETWORK TEST ---
 eta = 1e-2
-scikitNN = MLPRegressor(hidden_layer_sizes=n_hidden_neurons, alpha=lmbd, 
+scikitNN = MLPRegressor(hidden_layer_sizes=n_hidden_neurons, alpha=lmbd,
                             learning_rate_init=eta, max_iter=epochs)
 scikitNN.fit(X_train, z_train)
 print("SCIKIT learn MLPRegressor:")
 print(scikitNN.score(X_test, z_test))
 print(scikitNN.batch_size)
-make3Dplot(x_test, y_test, scikitNN.predict(X_test).ravel(), 
+make3Dplot(x_test, y_test, scikitNN.predict(X_test).ravel(),
             name=f"scikitNNreg_eta{eta}_lmbd{lmbd}_{len(n_hidden_neurons)}hiddenlayers_ReLU", show=True)
 
 
@@ -108,7 +107,7 @@ mse_scores = np.zeros((len(eta_vals), len(lmbd_vals)))
 for i, eta in enumerate(eta_vals):
     for j,lmbd in enumerate(lmbd_vals):
         nn = NeuralNetwork(X_train, y_train, eta=eta, lmbd=lmbd,
-                epochs=epochs, batch_size=batch_size, n_layers=n_layers, 
+                epochs=epochs, batch_size=batch_size, n_layers=n_layers,
                 n_hidden_neurons=n_hidden_neurons, problem='reg', activation=activation)
         nn.train()
         nn_grid[i][j] = nn
@@ -121,7 +120,7 @@ for i, eta in enumerate(eta_vals):
         mse_scores[i][j] = mse
 
 
-print(f"Minimum MSE: {np.min(mse_scores)}")
+print(f"Minimum MSE: {np.nanmin(mse_scores)}")
 opt_eta_index, opt_lmbd_index = np.where(mse_scores == np.nanmin(mse_scores))
 opt_eta = eta_vals[opt_eta_index]
 opt_lmbd = lmbd_vals[opt_lmbd_index]
@@ -150,3 +149,12 @@ plt.ylabel("log10(learning rate)")
 plt.xlabel("log10(lambda)")
 save_fig("NN_mse_map_frankefunc", extension='pdf')
 plt.show()
+
+print(f"\nTesting results of the best Neural network again:")
+bestNN = nn_grid[opt_eta_index, opt_lmbd_index]
+z_pred = bestNN.predict(X_test)
+r2score = R2(z_test, z_pred)
+mse = MSE(z_test, z_pred)
+print("R2-score: ", r2score)
+print("MSE: ", mse)
+make3Dplot(x_test, y_test, z_pred.ravel(), name=f"ownNNreg_optimal_params_eta{opt_eta}_lmbd{opt_lmbd}", show=True)
