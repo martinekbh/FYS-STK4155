@@ -61,7 +61,7 @@ lmbd = 0                   # Regression parameter
 epochs = int(1e+2)               # Number of epochs
 batch_size = int(n/50)      # Batch size = (number of observations) / (number of batches)
 n_layers = 5                # Number of hidden layers
-n_hidden_neurons = [80]*n_layers      # Number of neurons in the hidden layers
+n_hidden_neurons = [50]*n_layers      # Number of neurons in the hidden layers
 activation = 'leakyReLU'
 nn = NeuralNetwork(X_train, z_train, n_layers=n_layers, activation=activation,
                     n_hidden_neurons=n_hidden_neurons, epochs=epochs,
@@ -71,52 +71,32 @@ nn = NeuralNetwork(X_train, z_train, n_layers=n_layers, activation=activation,
 nn.train()
 z_pred = nn.predict(X_test)
 
+# Performance
 r2score = R2(z_test, z_pred)
 mse = MSE(z_test, z_pred)
-print("R2-score: ", r2score)        # Negativ score???
+print("R2-score: ", r2score)        
 print("MSE: ", mse)
-
-print('\n', z_test[:20])
-print(z_pred[:20])
-
 # Plot
-#make3Dplot(x_test, y_test, z_test, title="Franke function (test set)", show=False)
-#make3Dplot(x_test, y_test, z_pred.ravel(), title="Neural Network (regression)", show=True)
+make3Dplot(x_test, y_test, z_pred.ravel(), name=f"ownNNreg_eta{eta}_lmbd{lmbd}_{n_layers}layers_{activation}", show=True)
 
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-surf = ax.plot_trisurf(x_test, y_test, z_pred.ravel(), cmap=cm.coolwarm, linewidth = 0,
-                        antialiased=False)
-plt.xlabel("x-axis")
-plt.ylabel("y-axis")
-fig.colorbar(surf, shrink=0.5, aspect=5)
-plt.show()
 
 
 # --- SCIKIT LEARN NEURAL NETWORK TEST ---
+eta = 1e-2
 scikitNN = MLPRegressor(hidden_layer_sizes=n_hidden_neurons, alpha=lmbd, 
                             learning_rate_init=eta, max_iter=epochs)
 scikitNN.fit(X_train, z_train)
 print("SCIKIT learn MLPRegressor:")
 print(scikitNN.score(X_test, z_test))
 print(scikitNN.batch_size)
-
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-surf = ax.plot_trisurf(x_test, y_test, scikitNN.predict(X_test).ravel(), cmap=cm.coolwarm, linewidth = 0,
-                        antialiased=False)
-plt.xlabel("x-axis")
-plt.ylabel("y-axis")
-fig.colorbar(surf, shrink=0.5, aspect=5)
-plt.show()
+make3Dplot(x_test, y_test, scikitNN.predict(X_test).ravel(), 
+            name=f"scikitNNreg_eta{eta}_lmbd{lmbd}_{len(n_hidden_neurons)}hiddenlayers_ReLU", show=True)
 
 
-
-"""
 # DO GRID SEARCH to find optinal FFNN hyperparameters lmbd and eta
 print(f"\nPerforming grid test to find optimal learning rate and lambda for the Neural Network:")
-eta_vals = np.logspace(-14,-5,10)
-lmbd_vals = np.logspace(-1,8,10)
+eta_vals = np.logspace(-5,1,6)
+lmbd_vals = np.logspace(-5,1,6)
 
 nn_grid = np.zeros((len(eta_vals), len(lmbd_vals)), dtype=object)
 epochs = 100
@@ -170,4 +150,3 @@ plt.ylabel("log10(learning rate)")
 plt.xlabel("log10(lambda)")
 save_fig("NN_mse_map_frankefunc", extension='pdf')
 plt.show()
-"""

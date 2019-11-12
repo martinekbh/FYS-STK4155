@@ -39,7 +39,7 @@ def image_path(fig_id):
 def data_path(dat_id):
     return os.path.join(DATA_ID, dat_id)
 
-def save_fig(fig_id, extension='png'):
+def save_fig(fig_id, extension='pdf'):
     plt.savefig(image_path(fig_id) + '.' + extension, format=extension)
 
 
