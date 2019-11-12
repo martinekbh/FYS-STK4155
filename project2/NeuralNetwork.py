@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from sklearn.utils import shuffle
 
 class NeuralNetwork:
     def __init__(self, X, y,
@@ -59,17 +60,18 @@ class NeuralNetwork:
         self.create_biases_and_weights()
 
     def create_biases_and_weights(self):
-        W = [np.random.randn(self.n_features, self.n_hidden_neurons[0])]
+        W = [np.random.randn(self.n_features, self.n_hidden_neurons[0]) * np.sqrt(2/(self.n_features + self.n_hidden_neurons[0]))]
         b = [np.zeros((self.n_hidden_neurons[0], 1)) + 0.01]
         for l in range(1, self.n_layers):
-            W.append( np.random.randn(self.n_hidden_neurons[l-1], self.n_hidden_neurons[l]) )
+            W.append( np.random.randn(self.n_hidden_neurons[l-1], self.n_hidden_neurons[l]) 
+                            * np.sqrt(2/(self.n_hidden_neurons[l-1] + self.n_hidden_neurons[l])) )
             b.append( np.zeros((self.n_hidden_neurons[l], 1)) + 0.01 )
 
         #self.hidden_bias = np.zeros((self.n_layers, self.n_hidden_neurons, 1)) + 0.01
         self.hidden_weights = W
         self.hidden_bias = b
 
-        self.output_weights = np.random.randn(self.n_hidden_neurons[-1], self.n_categories)
+        self.output_weights = np.random.randn(self.n_hidden_neurons[-1], self.n_categories) * np.sqrt(2/(self.n_hidden_neurons[-1] + self.n_categories))
         self.output_bias = np.zeros((self.n_categories, 1)) + 0.01
 
     def feed_forward(self):
@@ -89,8 +91,8 @@ class NeuralNetwork:
         if self.problem == 'class':
             self.probabilities = self.softmax(self.z_o)
         elif self.problem == 'reg':
-            self.probabilities = self.activation_func(self.z_o)
-            #self.probabilities = self.z_o
+            #self.probabilities = self.activation_func(self.z_o)
+            self.probabilities = self.z_o
 
 
     def feed_forward_out(self, X):
@@ -107,8 +109,8 @@ class NeuralNetwork:
         if self.problem == 'class':
             probabilities = self.softmax(z_o)
         elif self.problem == 'reg':
-            probabilities = self.activation_func(z_o)
-            #probabilities = z_o
+            #probabilities = self.activation_func(z_o)
+            probabilities = z_o
 
         return probabilities
 
@@ -234,7 +236,8 @@ class NeuralNetwork:
         a_L = self.probabilities
 
         # Why does this get overflow?
-        error_output = a_L*(1- a_L)*(a_L - self.y)     # delta_L
+        #error_output = a_L*(1 - a_L)*(a_L - self.y)     # delta_L
+        error_output = a_L - self.y
         a_h = self.a_h[-1]
 
         # The gradients of the outputs
@@ -251,8 +254,8 @@ class NeuralNetwork:
         f_z_derived = self.activation_derivative(a_h)
         err = np.matmul(error_output, self.output_weights.T) * f_z_derived
 
-        if np.any(np.isnan(a_L)):
-            exit()
+        #if np.any(np.isnan(a_L)):
+        #    exit()
 
         for l in range((self.n_layers-2), -1, -1):
             error_hidden.insert(0,err)
@@ -271,13 +274,13 @@ class NeuralNetwork:
                 self.hidden_weights_gradient[i] += self.lmbd * self.hidden_weights[i]
 
         # Update the weights and biases
-        self.output_weights -= self.eta * self.output_weights_gradient
-        self.output_bias -= self.eta * self.output_bias_gradient
+        self.output_weights -= self.eta * self.output_weights_gradient * 1/self.batch_size
+        self.output_bias -= self.eta * self.output_bias_gradient * 1/self.batch_size
         for i in range(len(self.hidden_weights)):
-            self.hidden_weights[i] -= self.eta * self.hidden_weights_gradient[i]
-            self.hidden_bias[i] -= self.eta * self.hidden_bias_gradient[i]
+            self.hidden_weights[i] -= self.eta * self.hidden_weights_gradient[i] * 1/self.batch_size
+            self.hidden_bias[i] -= self.eta * self.hidden_bias_gradient[i] * 1/self.batch_size
 
-        print(self.output_weights)
+        #print(self.output_weights)
 
     def sgd(self, n_epochs, n_minibatches=None):
         Xtrain = self.Xtrain; Xtest = self.Xtest; ytrain = self.ytrain; ytest = self.ytest
@@ -319,6 +322,15 @@ class NeuralNetwork:
         probabilities = self.feed_forward_out(X)
         return probabilities
 
+    
+    def MSE(self, z, z_pred):
+        """ Function to evaluate the Mean Squared Error """
+        z = np.ravel(z)
+        z_pred = np.ravel(z_pred)
+        mse = (1/len(z))*np.sum((z-z_pred)**2)
+        return mse
+
+
     def train(self):
         data_indices = np.arange(self.n_inputs)
 
@@ -336,14 +348,33 @@ class NeuralNetwork:
 
         if self.problem == "reg":
             for i in range(self.epochs):
-                print(f"epoch {i}")
-                for j in range(self.iterations):
-                    print(f"iteration {j}")
+                #print(f"epoch {i}")
+
+                X_shuffled, y_shuffled = shuffle(self.X_full_data, self.y_full_data)
+
+                n_batches = int(np.ceil(len(self.X_full_data) / self.batch_size))
+                
+
+                for b in range(n_batches):
+
+                #for j in range(self.iterations):
                     # Pick datapoint with repacement:
-                    chosen_datapoints = np.random.choice(
-                            data_indices, size=self.batch_size, replace=False)
+                    #chosen_datapoints = np.random.choice(
+                    #        data_indices, size=self.batch_size, replace=False)
                     # minibatch training data
-                    self.X = self.X_full_data[chosen_datapoints]
-                    self.y = self.y_full_data[chosen_datapoints]
+
+                    self.X = X_shuffled[b*self.batch_size: min((b+1)*self.batch_size, len(X_shuffled))]
+                    self.y = y_shuffled[b*self.batch_size: min((b+1)*self.batch_size, len(y_shuffled))]
+                    #self.X = self.X_full_data[chosen_datapoints]
+                    #self.y = self.y_full_data[chosen_datapoints]
                     self.feed_forward()
                     self.back_propagation_regression()
+
+                pred = self.predict(self.X_full_data)
+                mse = self.MSE(self.y_full_data, pred)
+                print(mse)
+
+                    
+
+
+

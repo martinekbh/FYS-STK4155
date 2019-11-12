@@ -1,5 +1,6 @@
 # General imports
 import numpy as np
+from sklearn.neural_network import MLPRegressor
 
 # Import own classes and functions
 from NeuralNetwork import NeuralNetwork
@@ -7,7 +8,7 @@ from own_code import *
 
 
 # ---MAKE DATA---
-k = 20                       # Number of points on each axis
+k = 100                       # Number of points on each axis
 x = np.arange(0, 1, 1/k)     # Numbers on x-axis
 y = np.arange(0, 1, 1/k)     # Numbers on y-axis
 #xmax = x/(np.amax(x))       # To normalize the x-axis
@@ -21,9 +22,7 @@ x1 = np.ravel(x)            # Flatten to vector
 y1 = np.ravel(y)            # Flatten to vector
 n = len(x1)                 # Number of observations (n=k*k)
 np.random.seed(1001)        # Set seed for reproducability
-z1 = np.ravel(z) + np.random.normal(0, .1, n)    # Add noise if wanted
-
-#X = CreateDesignMatrix_X(x1, y1, d=1)
+z1 = np.ravel(z) #+ np.random.normal(0, .1, n)    # Add noise if wanted
 
 # Plot Franke Function
 make3Dplot(x,y,z, name="franke_func", show=False)
@@ -34,7 +33,6 @@ make3Dplot(x,y,z, name="franke_func", show=False)
 # Set up training data
 test_size = 0.3
 test_inds, train_inds = test_train_index(n, test_size=test_size)
-
 x_train = x1[train_inds]
 x_test = x1[test_inds]
 y_train = y1[train_inds]
@@ -50,27 +48,25 @@ X_test = CreateDesignMatrix_X(x_test, y_test, d=1)
 #from sklearn.preprocessing import normalize
 #z_train = normalize(z_train.reshape(-1,1))
 #print(np.min(z_train), np.max(z_train))
-"""
 from sklearn.preprocessing import StandardScaler
 scaler = StandardScaler()
 scaler.fit(X_train)
 X_train = scaler.transform(X_train)
 X_test = scaler.transform(X_test)
-"""
+
 
 # Create Neural Network
-eta = 0.0001                   # Learning rate
-lmbd = 0.0                    # Regression parameter
-epochs = 100                # Number of epochs
+eta = 1e-1                   # Learning rate
+lmbd = 0                   # Regression parameter
+epochs = int(1e+2)               # Number of epochs
 batch_size = int(n/50)      # Batch size = (number of observations) / (number of batches)
 n_layers = 5                # Number of hidden layers
-n_hidden_neurons = [20]*5      # Number of neurons in the hidden layers
+n_hidden_neurons = [80]*n_layers      # Number of neurons in the hidden layers
 activation = 'leakyReLU'
-nn = NeuralNetwork(X_train, y_train, n_layers=n_layers, activation=activation,
+nn = NeuralNetwork(X_train, z_train, n_layers=n_layers, activation=activation,
                     n_hidden_neurons=n_hidden_neurons, epochs=epochs,
                     batch_size=batch_size,
                     eta=eta, lmbd=lmbd, problem='reg', seed=1)
-
 
 nn.train()
 z_pred = nn.predict(X_test)
@@ -84,16 +80,43 @@ print('\n', z_test[:20])
 print(z_pred[:20])
 
 # Plot
-make3Dplot(x_test, y_test, z_test, title="Franke function (test set)", show=False)
-make3Dplot(x_test, y_test, z_pred, title="Neural Network (regression)", show=True)
+#make3Dplot(x_test, y_test, z_test, title="Franke function (test set)", show=False)
+#make3Dplot(x_test, y_test, z_pred.ravel(), title="Neural Network (regression)", show=True)
+
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+surf = ax.plot_trisurf(x_test, y_test, z_pred.ravel(), cmap=cm.coolwarm, linewidth = 0,
+                        antialiased=False)
+plt.xlabel("x-axis")
+plt.ylabel("y-axis")
+fig.colorbar(surf, shrink=0.5, aspect=5)
+plt.show()
+
+
+# --- SCIKIT LEARN NEURAL NETWORK TEST ---
+scikitNN = MLPRegressor(hidden_layer_sizes=n_hidden_neurons, alpha=lmbd, 
+                            learning_rate_init=eta, max_iter=epochs)
+scikitNN.fit(X_train, z_train)
+print("SCIKIT learn MLPRegressor:")
+print(scikitNN.score(X_test, z_test))
+print(scikitNN.batch_size)
+
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+surf = ax.plot_trisurf(x_test, y_test, scikitNN.predict(X_test).ravel(), cmap=cm.coolwarm, linewidth = 0,
+                        antialiased=False)
+plt.xlabel("x-axis")
+plt.ylabel("y-axis")
+fig.colorbar(surf, shrink=0.5, aspect=5)
+plt.show()
+
 
 
 """
-
 # DO GRID SEARCH to find optinal FFNN hyperparameters lmbd and eta
 print(f"\nPerforming grid test to find optimal learning rate and lambda for the Neural Network:")
-eta_vals = np.logspace(-8,3,12)
-lmbd_vals = np.logspace(-8,3,12)
+eta_vals = np.logspace(-14,-5,10)
+lmbd_vals = np.logspace(-1,8,10)
 
 nn_grid = np.zeros((len(eta_vals), len(lmbd_vals)), dtype=object)
 epochs = 100
@@ -119,7 +142,7 @@ for i, eta in enumerate(eta_vals):
 
 
 print(f"Minimum MSE: {np.min(mse_scores)}")
-opt_eta_index, opt_lmbd_index = np.where(mse_scores == np.min(mse_scores))
+opt_eta_index, opt_lmbd_index = np.where(mse_scores == np.nanmin(mse_scores))
 opt_eta = eta_vals[opt_eta_index]
 opt_lmbd = lmbd_vals[opt_lmbd_index]
 print(f"Obtained with parameters:")
@@ -147,5 +170,4 @@ plt.ylabel("log10(learning rate)")
 plt.xlabel("log10(lambda)")
 save_fig("NN_mse_map_frankefunc", extension='pdf')
 plt.show()
-
 """
