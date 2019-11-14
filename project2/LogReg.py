@@ -40,9 +40,9 @@ class LogReg:
         else:
             batch_size = int(n / n_minibatches)
 
-        beta = np.random.randn(len(X[0]), 1) # why random?
+        beta = np.random.randn(len(X[0]), 1)
 
-        for epoch in range(n_epochs):   # epoch
+        for epoch in range(n_epochs):               # epoch
             for i in range(n_minibatches):          # minibatches
                 random_index = np.random.randint(n_minibatches)
 
@@ -56,6 +56,8 @@ class LogReg:
                 beta = beta - l * gradient
                 self.beta = beta
 
+        self.beta = beta
+
         if self.print_coeffs == True:
             self.print_coeff_table(beta[0], beta[1:])
 
@@ -67,7 +69,6 @@ class LogReg:
     def predict(self, x, beta=None):
         if beta == None:
             beta = self.beta
-
         pred = np.round(1/(1 + np.exp(-x@beta))).ravel()
         return pred
 
@@ -107,23 +108,6 @@ class LogReg:
         table.add_column(column_names[1], values)
         print(table)
         return
-
-    '''
-    def R2(self, z, z_pred):
-        """ Function to evaluate the R2-score """
-        z = np.ravel(z)
-        z_pred = np.ravel(z_pred)
-        mean = (1/len(z))*sum(z)
-        r2 = 1 - (sum((z-z_pred)**2)/sum((z - mean)**2))
-        return r2
-
-    def MSE(self, z, z_pred):
-        """ Function to evaluate the Mean Squared Error """
-        z = np.ravel(z)
-        z_pred = np.ravel(z_pred)
-        mse = (1/len(z))*np.sum((z-z_pred)**2)
-        return mse
-    '''
 
     def accuracy(self, y, y_pred):
         return np.sum(y == y_pred)/len(y)

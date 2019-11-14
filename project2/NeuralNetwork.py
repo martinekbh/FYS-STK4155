@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 from sklearn.utils import shuffle
+from sklearn.discriminant_analysis import softmax
 
 class NeuralNetwork:
     def __init__(self, X, y,
@@ -89,7 +90,7 @@ class NeuralNetwork:
         #exp_term = np.exp(self.z_o)
         #self.probabilities = exp_term / (np.sum(exp_term, axis=1, keepdims=True))
         if self.problem == 'class':
-            self.probabilities = self.softmax(self.z_o)
+            self.probabilities = softmax(self.z_o)
         elif self.problem == 'reg':
             #self.probabilities = self.activation_func(self.z_o)
             self.probabilities = self.z_o
@@ -107,7 +108,7 @@ class NeuralNetwork:
         #exp_term = np.exp(z_o)
         #probabilities = exp_term / np.sum(exp_term, axis=1, keepdims=True)
         if self.problem == 'class':
-            probabilities = self.softmax(z_o)
+            probabilities = softmax(z_o)
         elif self.problem == 'reg':
             #probabilities = self.activation_func(z_o)
             probabilities = z_o
@@ -144,10 +145,10 @@ class NeuralNetwork:
             return d
 
 
-    def softmax(self, x):
+    #def softmax(self, x):
         #x = np.array(x, dtype=float128)
-        exp_term = np.exp(x)
-        return exp_term/(np.sum(exp_term, axis=1, keepdims=True))
+        #exp_term = np.exp(x)
+        #return exp_term/(np.sum(exp_term, axis=1, keepdims=True))
     """
     def back_propagation(self):
         a_L = self.probabilities
@@ -372,7 +373,6 @@ class NeuralNetwork:
 
                 pred = self.predict(self.X_full_data)
                 mse = self.MSE(self.y_full_data, pred)
-                print(mse)
 
                     
 

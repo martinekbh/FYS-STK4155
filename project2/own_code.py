@@ -3,6 +3,7 @@ Module that contains all relevant functions of our own making.
 """
 # General imports
 import numpy as np
+from LogReg import LogReg
 #from random import random, seed
 import os
 
@@ -88,6 +89,10 @@ def SVDinv(A):
     return np.matmul(V,np.matmul(invD,UT))
 
 
+def accuracy(y, pred):
+    y = y.ravel()
+    pred = pred.ravel()
+    return np.sum(y==pred)/len(y)
 
 def MSE(z, z_pred):
     """ Function to evaluate the Mean Squared Error """
@@ -160,6 +165,36 @@ def k_folds(n, k=5, seed = None):
         folds.append(test_indexes)
     return folds
 
+def k_Cross_Validation_logreg(X, y, k=5, epochs=100, n_minibatches=30, seed = None):
+    acc_test = []
+    acc_train = []
+
+    n = len(y)   # Number of observations
+    i = int(n/k) # Size of test set
+    test_folds = k_folds(n, k=k, seed=seed)
+   
+    for indexes in test_folds:
+        m = len(indexes)
+        X_test = X[indexes]
+        y_test = y[indexes]
+        X_train = X[np.delete(np.arange(n), indexes)]
+        y_train = y[np.delete(np.arange(n), indexes)]
+        #X_test = CreateDesignMatrix_X(x_test, y_test, d=d)
+        #X_train = CreateDesignMatrix_X(x_train, y_train, d=d)
+
+        logreg = LogReg(X_train, y_train)
+        logreg.sgd(n_epochs=epochs, n_minibatches=n_minibatches)
+        y_pred = logreg.predict(X_test)
+        acc = accuracy(y_test, y_pred)
+        train_acc = accuracy(y_train, logreg.predict(X_train))
+
+        acc_test.append(acc)
+        acc_train.append(train_acc)
+    
+    return np.mean(acc_test), np.mean(acc_train)
+
+
+
 
 def k_Cross_Validation(x, y, z, k=5, d=3, reg_method = 'Linear', lmb = None, seed = None):
     """
@@ -229,6 +264,8 @@ def k_Cross_Validation(x, y, z, k=5, d=3, reg_method = 'Linear', lmb = None, see
     r2_score = np.mean(r2)
 
     return test_err, train_err, r2_score
+
+
 
 # Function for making plot
 def make3Dplot(x, y , z, title=None, name=None, size=(16,12),  show=True):
@@ -306,7 +343,3 @@ def make3Dplot_multiple(x, y, zlist, title=None, name=None, size=(25,10), show=T
         plt.close()
 
 
-def accuracy(y, pred):
-    y = y.ravel()
-    pred = pred.ravel()
-    return np.sum(y==pred)/len(y)
