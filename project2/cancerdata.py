@@ -26,6 +26,13 @@ X = cancer.data
 y = cancer.target
 y = y.reshape(len(y), 1)        # Make column vector
 
+# Print proportions:
+people_with_cancer = (y == 1).sum()
+people_without_cancer = (y == 0).sum()
+print(f"There are {len(y)} observations in this dataset")
+print(f"{people_with_cancer} have breast cancer")
+print(f"{people_without_cancer} do not have breast cancer")
+
 # Set up training data
 seed = 0
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed)
@@ -38,7 +45,7 @@ X_train_scaled = scaler.transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
 # ---LOGREG WITH SCIKIT (scaled and not scaled)---
-print("Scikit logistic regression results:")
+print("\nScikit logistic regression results:")
 logreg = LogisticRegression(solver='liblinear')
 logreg.fit(X_train, y_train.ravel())
 print("Test set accuracy: {:f}".format(logreg.score(X_test,y_test.ravel())))
@@ -68,10 +75,6 @@ def LogReg_optimize_n_minibatches(epochs = 100, X=X, y=y):
     # Insert column of 1's first
     one_vector = np.ones((len(y),1))
     X = np.concatenate((one_vector, X), axis = 1)
-    #one_vector = np.ones((len(y_test),1))
-    #X_test1 = np.concatenate((one_vector, X_test), axis = 1)
-    #X_train = X_train1
-    #X_test = X_test1
 
     iterations = 10
     plt.figure()
@@ -93,7 +96,6 @@ def LogReg_optimize_n_minibatches(epochs = 100, X=X, y=y):
 
     plt.xlabel("Number of minibatches in SGD")
     plt.ylabel("Accuracy score")
-    #plt.ylim((0.8, 1))
     plt.legend(['Test set', 'Train set'])
     save_fig("LogRegcancer_accuracy_vs_n_minibatches")
     plt.show()
@@ -106,12 +108,6 @@ def LogReg_optimize_epochs(n_minibatches = 30, X=X, y=y):
     print("\nOptimizing number of epochs for logistic regression...")
     one_vector = np.ones((len(y),1))
     X = np.concatenate((one_vector, X), axis = 1)
-    #one_vector = np.ones((len(y_train),1))
-    #X_train1 = np.concatenate((one_vector, X_train), axis = 1)
-    #one_vector = np.ones((len(y_test),1))
-    #X_test1 = np.concatenate((one_vector, X_test), axis = 1)
-    #X_train = X_train1
-    #X_test = X_test1
 
     iterations = 10
     epochs = np.arange(1, 202, 10) 
@@ -148,7 +144,7 @@ def LogReg_with_opt_params(epochs, n_minibatches, X_train=X_train, X_test=X_test
     X_train = X_train1
     X_test = X_test1
 
-    logreg = LogReg(X_train, y_train)
+    logreg = LogReg(X_train, y_train, cancer.feature_names)
     logreg.sgd(n_epochs=epochs, n_minibatches=n_minibatches)
     pred = logreg.predict(X_test)
     acc = accuracy(y_test, pred)
@@ -192,6 +188,71 @@ def NeuralNet_test(X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_tes
     print(f"Number of hidden layers: {Nhidden_layer}")
     print(f"Hidden neurons: {nhidden_neuron}")
     print(f"Test set accuracy with own Neural Network code: {accuracy_nn}")
+
+def NeuralNet_eta_epochs_heatmap():
+    # DO GRID SEARCH to find optinal FFNN hyperparameters lmbd and eta
+    print(f"\nPerforming grid test to plot accuracy for increasing eta and number of epochs for the Neural Network:")
+    eta_vals = np.linspace(1e-6, 1e-1,10)
+    epochs = np.linspace(1,200,10, dtype=int)
+
+    # Use onehotencoder
+    encoder = OneHotEncoder(categories='auto')
+    encoder.fit(y_train)
+    y_train_encode = encoder.transform(y_train).toarray()
+
+    nn_grid = np.zeros((len(eta_vals), len(epochs)), dtype=object)
+    lmbd = 0
+    batch_size = 50
+    n_layers = 3
+    n_hidden_neurons = [50,40,30]
+
+    acc_scores = np.zeros((len(eta_vals), len(epochs)))
+    for i, eta in enumerate(eta_vals):
+        for j, ep in enumerate(epochs):
+            print(ep)
+            nn = NeuralNetwork(X_train, y_train, eta=eta, lmbd=lmbd,
+                    epochs=ep, batch_size=batch_size, n_layers=n_layers, n_hidden_neurons=n_hidden_neurons)
+            nn.train()
+            nn_grid[i][j] = nn
+            test_predict = nn.predict(X_test)
+            acc = accuracy(y_test, test_predict)
+            acc_scores[i][j] = acc
+
+
+    print(f"Maximum accuracy: {np.max(acc_scores)}")
+    opt_eta_index, opt_epoch_index = np.where(acc_scores == np.max(acc_scores))
+    opt_eta = eta_vals[opt_eta_index]
+    opt_epoch = epochs[opt_epoch_index]
+    print(f"Obtained with parameters:")
+    print(f"Learning rate={opt_eta}, epochs={opt_epoch}")
+    print(f"Test: acc={acc_scores[opt_eta_index, opt_epoch_index]}")
+
+
+    # PLOT accuracy vs. learning rate and lambda
+    import matplotlib.pyplot as plt
+    ymax = eta_vals[-1]
+    ymin = eta_vals[0]
+    xmax = epochs[-1]
+    xmin = epochs[0]
+    fig, ax = plt.subplots()
+    ax.matshow(acc_scores, cmap=plt.cm.summer,
+                extent = [xmin-0.5, xmax+0.5, ymax+0.5, ymin-0.5],
+                interpolation=None, aspect='auto', origin='upper')
+    for i in range(len(eta_vals)):
+        for j in range(len(epochs)):
+            c = acc_scores[i,j]
+            c = 100*round(c,3)
+            ax.text(epochs[j], eta_vals[i], str(c), va='center', ha='center')
+
+    plt.ylabel("learning rate (eta)")
+    plt.xlabel("epochs")
+    save_fig("NNcancer_eta_epochs_heartmap")
+    plt.show()
+
+    #opt_eta_index, opt_epoch_index = np.where(acc_scores == np.nanmax(acc_scores))
+    #opt_eta = eta_vals[opt_eta_index]
+    #opt_epoch = lmbd_vals[opt_epoch_index]
+    return opt_eta, opt_epoch
 
 
 def NeuralNet_find_optimal_eta_lmbd():
@@ -254,10 +315,10 @@ def NeuralNet_find_optimal_eta_lmbd():
     return opt_eta, opt_lmbd
     
 
-def NeuralNet_optimize_epochs(opt_eta=0.1, opt_lmbd=1e-7, batch_size=50, n_layers=3, n_hidden_neurons=[50,40,30], X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test):
+def NeuralNet_optimize_epochs(opt_eta=0.1, opt_lmbd=1e-7, batch_size=18, n_layers=3, n_hidden_neurons=[50,40,30], X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test):
     print(f"\nOptimizing the number of epochs in the Neural Network...")
-    batch_size = int(len(y)/30)
-    opt_lmbd = 0
+    #batch_size = int(len(y)/30)
+    #opt_lmbd = 0
 
     # Use onehotencoder
     encoder = OneHotEncoder(categories='auto')
@@ -318,6 +379,71 @@ def NeuralNet_optimize_epochs(opt_eta=0.1, opt_lmbd=1e-7, batch_size=50, n_layer
     """
     return opt_epochs
 
+def NeuralNet_optimize_batchsize(opt_eta=0.1, opt_lmbd=1e-7, epochs = 100, n_layers=3, n_hidden_neurons=[50,40,30], X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test):
+    print(f"\nOptimizing the number of minibatches in the Neural Network...")
+
+    # Use onehotencoder
+    encoder = OneHotEncoder(categories='auto')
+    encoder.fit(y_train)
+    y_train_encode = encoder.transform(y_train).toarray()
+
+    plt.figure()
+    iterations = 10
+    batch_sizes = np.arange(1, 100, 2)
+    for iteration in range(iterations):
+        acc_scores = np.zeros(len(batch_sizes))
+        acc_train_scores = np.zeros(len(batch_sizes))
+        for i, size in enumerate(batch_sizes):
+            nn = NeuralNetwork(X_train, y_train_encode, eta=opt_eta, lmbd=opt_lmbd,
+                    epochs=epochs, batch_size=size, n_layers=n_layers, 
+                    n_hidden_neurons=n_hidden_neurons)
+            nn.train()
+            test_predict = nn.predict(X_test)
+            train_predict = nn.predict(X_train)
+            acc = accuracy(y_test, test_predict)
+            acc_train = accuracy(y_train, train_predict)
+
+            acc_scores[i] = acc
+            acc_train_scores[i] = acc_train
+            print(acc_train)
+            
+
+        plt.plot(batch_sizes, acc_scores, 'tab:blue')
+        plt.plot(batch_sizes, acc_train_scores, 'tab:red')
+    plt.ylabel("Accuracy score")
+    plt.xlabel("Batch size in the Neural Network")
+    plt.legend(['Test data', 'Train data'])
+    save_fig("NNcancer_acc_vs_batchsize")
+    plt.show()
+
+    opt_index = np.where(acc_scores == np.nanmax(acc_scores))
+    opt_batchsize = batch_sizes[opt_index]
+    return opt_batchsize
+
+def NeuralNet_with_opt_params(eta, lmbd, n_layers, n_hidden_neurons, epochs, batch_size, X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test):
+    print(f"Neural Network with optimal parameters:")
+    from sklearn.preprocessing import OneHotEncoder
+    encoder = OneHotEncoder(categories='auto')
+    encoder.fit(y_train)
+    y_train = encoder.transform(y_train).toarray()
+
+    batchsize = int(len(y)/30)
+    neural_net = NeuralNetwork(X_train, y_train, eta = eta, lmbd = lmbd,
+                    epochs = epochs, batch_size = batch_size, n_layers=n_layers, 
+                    n_hidden_neurons = n_hidden_neurons, seed = 1)
+    neural_net.train()
+    pred = neural_net.predict(X_test)
+    accuracy_nn = accuracy(y_test,pred)
+    print(f"epochs={epochs}")
+    print(f"eta={eta}")
+    print(f"lmbd={lmbd}")
+    print(f"batchsize={batchsize}")
+    print(f"Number of hidden layers: {n_layers}")
+    print(f"Hidden neurons: {n_hidden_neurons}")
+    print(f"Test set accuracy with own Neural Network code: {accuracy_nn}")
+
+
+# ---- RUN THE FUNCTIONS ---
 
 # --- Logsitic regression ---
 #print("\nLogistic Regression Analysis:")
@@ -325,11 +451,15 @@ def NeuralNet_optimize_epochs(opt_eta=0.1, opt_lmbd=1e-7, batch_size=50, n_layer
 #print(f"Optimal number of minibatches: {opt_n_minibatches}")
 #opt_epochs = LogReg_optimize_epochs()
 #print(f"Optimal number of epochs: {opt_epochs}")
-#acc = LogReg_with_opt_params(200, 50)
+#acc = LogReg_with_opt_params(100, 30)
 
 # --- Neural Network ---
-print("\nNeural Network Analysis:")
-NeuralNet_test()
+#print("\nNeural Network Analysis:")
+#NeuralNet_test()
 #NeuralNet_optimize_eta_lmbd()
-opt_epochs = NeuralNet_optimize_epochs()
-print(f"Optimal number of epochs: {opt_epochs}")
+#opt_epochs = NeuralNet_optimize_epochs()
+#print(f"Optimal number of epochs: {opt_epochs}")
+#opt_batchsize = NeuralNet_optimize_batchsize()
+#print(f"Optimal batch size: {opt_batchsize}")
+#NeuralNet_eta_epochs_heatmap()
+#NeuralNet_with_opt_params(0.1, 1e-7, 3, [100,50,10], 150, 15)

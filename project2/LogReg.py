@@ -72,31 +72,6 @@ class LogReg:
         pred = np.round(1/(1 + np.exp(-x@beta))).ravel()
         return pred
 
-    '''
-    def stocastic_gradient_descent(self, Niter, print_coeffs = False):
-        """ SGD with scikit """
-
-        sGD_classifier = SGDClassifier(loss = 'log',
-                    penalty = 'l2', max_iter = Niter, eta0 = 0.001, fit_intercept = True,
-                    shuffle = True, random_state = self.seed, n_iter_no_change = 5)
-        sGD_classifier.fit(self.Xtrain,self.ytrain.ravel())
-
-        ypred = sGD_classifier.predict(self.Xtest)
-
-        # Scores
-        R2_score = self.R2(self.ytest, ypred)
-        mSE_score = self.MSE(self.ytest, ypred)
-        accuracy = self.accuracy(self.ytest, ypred)
-        print(f" MSE = {mSE_score}, R2-score = {R2_score}")
-        print(f"accuracy = {accuracy}")
-
-
-        if print_coeffs == True:
-            beta_coeff = sGD_classifier.coef_[0]    # This is a nested list for some reason
-            beta_intercept = sGD_classifier.intercept_[0]
-            self.print_coeff_table(beta_coeff, beta_intercept)
-    '''
-
     def print_coeff_table(self, beta_intercept, beta_coeff):
         from prettytable import PrettyTable
         table = PrettyTable()
@@ -113,40 +88,3 @@ class LogReg:
         return np.sum(y == y_pred)/len(y)
 
 
-if __name__== "__main__":
-    # Import breast cancer data
-    cancer = load_breast_cancer()
-    X = cancer.data
-    y = cancer.target
-    n = len(y)
-
-
-    seed = 1        # Define seed
-
-    # Set up training data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=seed)
-
-    # Scale data
-    scaler = StandardScaler()
-    scaler.fit(X_train)
-    X_test  = scaler.transform(X_test)
-    X_train = scaler.transform(X_train)
-
-    # Create design matrix
-    one_vector = np.ones((len(y_train),1))
-    X_train = np.concatenate((one_vector, X_train), axis = 1)
-    one_vector = np.ones((len(y_test),1))
-    X_test = np.concatenate((one_vector, X_test), axis = 1)
-
-    logreg = LogReg(X_train, y_train, predictor_names = cancer.feature_names)
-
-
-    l_rate = 0.1
-    n_epochs = 100
-    beta = logreg.sgd(n_epochs, n_minibatches=30)
-    # Martine: Jeg tror vi mangler intercept i beta?
-
-    pred = logreg.predict(X_test)
-    acc = logreg.accuracy(y_test, pred)
-    print(f"\n\nLogistic regression with {n_epochs} epochs and {l_rate} learning rate")
-    print(f"Accuracy: {acc}")

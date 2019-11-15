@@ -215,6 +215,42 @@ def NeuralNet_find_opt_params():
     make3Dplot(x_test, y_test, z_pred.ravel(), name=f"ownNNreg_optimalparams", show=True)
 
 
+def NeuralNet_optimize_batchsize(opt_eta=0.1, opt_lmbd=1e-7, epochs = 100, n_layers=3, n_hidden_neurons=[50,40,30], X_train=X_train, X_test=X_test, y_train=z_train, y_test=z_test):
+    print(f"\nOptimizing the number of minibatches in the Neural Network...")
+
+    plt.figure()
+    iterations = 10
+    batch_sizes = np.arange(9600, 10000, 100)
+    for iteration in range(iterations):
+        mse_scores = np.zeros(len(batch_sizes))
+        mse_train_scores = np.zeros(len(batch_sizes))
+        for i, size in enumerate(batch_sizes):
+            nn = NeuralNetwork(X_train, y_train, eta=opt_eta, lmbd=opt_lmbd,
+                    epochs=epochs, batch_size=size, n_layers=n_layers, 
+                    n_hidden_neurons=n_hidden_neurons, problem='reg', activation='leakyReLU')
+            nn.train()
+            test_predict = nn.predict(X_test)
+            train_predict = nn.predict(X_train)
+            mse = accuracy(y_test, test_predict)
+            mse_train = accuracy(y_train, train_predict)
+
+            mse_scores[i] = mse
+            mse_train_scores[i] = mse_train
+            print(mse_train)
+            
+
+        plt.plot(batch_sizes, mse_scores, 'tab:blue')
+        plt.plot(batch_sizes, mse_train_scores, 'tab:red')
+    plt.ylabel("MSE score")
+    plt.xlabel("Batch size in the Neural Network")
+    plt.legend(['Test data', 'Train data'])
+    save_fig("NNfranke_mse_vs_batchsize")
+    plt.show()
+
+    opt_index = np.where(mse_scores == np.nanmin(mse_scores))
+    opt_batchsize = batch_sizes[opt_index]
+    return opt_batchsize
+
 
 
 # ---Linear Regression---
@@ -358,9 +394,12 @@ def lasso_find_opt_params():
     print(f"MSE = {test_err}\nR2 = {r2}")
 
 
+# --- Run the functions ---
+
 #NeuralNet()
 #NeuralNet_find_opt_params()
 #linreg_find_opt_degree()
 #ridge_find_opt_params()
-lasso_find_opt_params()
+#lasso_find_opt_params()
+#NeuralNet_optimize_batchsize()
 

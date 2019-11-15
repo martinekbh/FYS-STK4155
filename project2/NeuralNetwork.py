@@ -87,12 +87,9 @@ class NeuralNetwork:
             self.a_h.append(a)
 
         self.z_o = np.matmul(a, self.output_weights) + self.output_bias.T
-        #exp_term = np.exp(self.z_o)
-        #self.probabilities = exp_term / (np.sum(exp_term, axis=1, keepdims=True))
         if self.problem == 'class':
             self.probabilities = softmax(self.z_o)
         elif self.problem == 'reg':
-            #self.probabilities = self.activation_func(self.z_o)
             self.probabilities = self.z_o
 
 
@@ -105,12 +102,9 @@ class NeuralNetwork:
             a_h = self.activation_func(z)
 
         z_o = np.matmul(a_h, self.output_weights) + self.output_bias.T
-        #exp_term = np.exp(z_o)
-        #probabilities = exp_term / np.sum(exp_term, axis=1, keepdims=True)
         if self.problem == 'class':
             probabilities = softmax(z_o)
         elif self.problem == 'reg':
-            #probabilities = self.activation_func(z_o)
             probabilities = z_o
 
         return probabilities
@@ -149,48 +143,6 @@ class NeuralNetwork:
         #x = np.array(x, dtype=float128)
         #exp_term = np.exp(x)
         #return exp_term/(np.sum(exp_term, axis=1, keepdims=True))
-    """
-    def back_propagation(self):
-        a_L = self.probabilities
-        error_output = a_L * (1 - a_L )*(a_L - self.y)
-        a_h = self.a_h[-1]
-
-        # The gradients of the outputs
-        self.output_weights_gradient = np.matmul(a_h.T, error_output)
-        self.output_bias_gradient = np.sum(error_output, axis=0)            # Is reshaped
-        self.output_bias_gradient = self.output_bias_gradient.reshape(len(self.output_bias_gradient),1)
-
-        # Make empty lists
-        error_hidden = []
-        self.hidden_weights_gradient = []
-        self.hidden_bias_gradient = []
-
-        # Calculate error and gradients of the hidden layers
-        err = np.matmul(error_output, self.output_weights.T) * a_h * (1 - a_h)
-        for l in range((self.n_layers-2), -1, -1):
-            #print(f"l: {l}")
-            error_hidden.insert(0,err)
-            self.hidden_weights_gradient.insert( 0, np.matmul(self.a_h[l].T, err) )
-            self.hidden_bias_gradient.insert( 0, np.sum(err, axis=0).reshape(len(err[0]), 1) )
-
-            err = np.matmul(err, self.hidden_weights[l+1].T) * self.a_h[l] * (1 - self.a_h[l])
-
-        self.hidden_weights_gradient.insert( 0, np.matmul(self.X.T, err) )
-        self.hidden_bias_gradient.insert( 0, np.sum(err, axis=0).reshape(len(err[0]),1) )
-
-        # Regression parameter
-        if self.lmbd > 0.0:
-            self.output_weights_gradient += self.lmbd * self.output_weights
-            for i in range(len(self.hidden_weights_gradient)): # Maybe -1 on the range?
-                self.hidden_weights_gradient[i] += self.lmbd * self.hidden_weights[i]
-
-        # Update the weights and biases
-        self.output_weights -= self.eta * self.output_weights_gradient
-        self.output_bias -= self.eta * self.output_bias_gradient
-        for i in range(len(self.hidden_weights)):
-            self.hidden_weights[i] -= self.eta * self.hidden_weights_gradient[i]
-            self.hidden_bias[i] -= self.eta * self.hidden_bias_gradient[i]
-        """
 
     def back_propagation_classification(self):
         a_L = self.probabilities
@@ -236,7 +188,6 @@ class NeuralNetwork:
     def back_propagation_regression(self):
         a_L = self.probabilities
 
-        # Why does this get overflow?
         #error_output = a_L*(1 - a_L)*(a_L - self.y)     # delta_L
         error_output = a_L - self.y
         a_h = self.a_h[-1]
@@ -254,9 +205,6 @@ class NeuralNetwork:
         # Calculate error and gradients of the hidden layers
         f_z_derived = self.activation_derivative(a_h)
         err = np.matmul(error_output, self.output_weights.T) * f_z_derived
-
-        #if np.any(np.isnan(a_L)):
-        #    exit()
 
         for l in range((self.n_layers-2), -1, -1):
             error_hidden.insert(0,err)
@@ -281,7 +229,6 @@ class NeuralNetwork:
             self.hidden_weights[i] -= self.eta * self.hidden_weights_gradient[i] * 1/self.batch_size
             self.hidden_bias[i] -= self.eta * self.hidden_bias_gradient[i] * 1/self.batch_size
 
-        #print(self.output_weights)
 
     def sgd(self, n_epochs, n_minibatches=None):
         Xtrain = self.Xtrain; Xtest = self.Xtest; ytrain = self.ytrain; ytest = self.ytest
