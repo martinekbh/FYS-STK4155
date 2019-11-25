@@ -51,7 +51,7 @@ print("_______________________")
 
 # Set variables before preprocessing
 batch_size = 128
-epochs = 5
+epochs = 15
 IMG_HEIGHT = 150
 IMG_WIDTH = 150
 
