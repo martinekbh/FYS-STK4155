@@ -3,11 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from own_code import *
+import time
 
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D
+from skimage.color import rgb2gray
 
 
 """
@@ -64,34 +66,27 @@ train_data_gen = train_image_generator.flow_from_directory(batch_size=batch_size
                                                            directory=train_dir,
                                                            shuffle=True,
                                                            target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                           color_mode='rgb',
                                                            class_mode='binary')
 
 val_data_gen = validation_image_generator.flow_from_directory(batch_size=batch_size,
                                                               directory=validation_dir,
                                                               target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                              color_mode='rgb',
                                                               class_mode='binary')
-
 
 sample_training_images, _ = next(train_data_gen)
 
-# This function will plot images in the form of a grid with 1 row and 5 columns where images are placed in each column.
-def plotImages(images_arr):
-    fig, axes = plt.subplots(1, 5, figsize=(20,20))
-    axes = axes.flatten()
-    for img, ax in zip( images_arr, axes):
-        ax.imshow(img)
-        ax.axis('off')
-    plt.tight_layout()
-    save_fig("sample_images", folder="cats_and_dogs", extension='pdf')
-    save_fig("sample_images", folder="cats_and_dogs", extension='png')
-    plt.show()
-plotImages(sample_training_images[:5])
+# Show some of the pictures from the training set
+plotImages(sample_training_images[:5], folder="cats_and_dogs")
 
 
-# Create CNN model
+# Create CNN model and record the time it takes
+start_time = time.time()
 print("\nCreate Convoluted Neural Network model...")
+image_shape = (IMG_HEIGHT, IMG_WIDTH, 3)
 model = Sequential([
-    Conv2D(16, 3, padding='same', activation='relu', input_shape=(IMG_HEIGHT, IMG_WIDTH ,3)),
+    Conv2D(16, 3, padding='same', activation='relu', input_shape=image_shape),
     MaxPooling2D(),
     Conv2D(32, 3, padding='same', activation='relu'),
     MaxPooling2D(),
@@ -123,6 +118,10 @@ loss = history.history['loss']
 val_loss = history.history['val_loss']
 epochs_range = range(epochs)
 
+stop_time = time.time()
+computing_time = stop_time - start_time
+print(f"\n------------------\nCNN COMPUTING TIME: {computing_time}")
+
 # Plot training/test accuracy and loss (error)
 plt.figure(figsize=(8, 8))
 plt.subplot(1, 2, 1)
@@ -138,7 +137,7 @@ plt.plot(epochs_range, val_loss, label='Validation Loss')
 plt.legend(loc='upper right')
 plt.xlabel("Number of epochs")
 plt.ylabel("Loss")
-plt.title('Training and Validation Loss')
+plt.title('Training and Validation Loss on the cats and dogs data')
 save_fig("cnn_train_test_score", folder="cats_and_dogs", extension='pdf')
 save_fig("cnn_train_test_score", folder="cats_and_dogs", extension='png')
 plt.show()
