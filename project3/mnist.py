@@ -18,6 +18,8 @@ mnist = tf.keras.datasets.mnist     # Load dataset
 # Scale data (min-max scaling)
 x_train = (x_train - np.min(x_train))/(np.max(x_train) - np.min(x_train))
 x_test = (x_test - np.min(x_test))/(np.max(x_test) - np.min(x_test))
+#x_train = x_train/255
+#x_test = x_test/255
 
 # Print info about dataset
 print("\nINFO:")
@@ -50,8 +52,8 @@ x_test = x_test.reshape(x_test.shape[0], IMG_HEIGHT, IMG_WIDTH, 1)
 image_shape = (IMG_HEIGHT, IMG_WIDTH, 1)
 
 # Set variables before preprocessing
-batch_size = 64
-epochs = 5
+batch_size = 128
+epochs = 30
 
 start_time = time.time()    # For recording the time the NN takes
 print(f"Build NeuralNetwork model...")
@@ -65,11 +67,11 @@ model = tf.keras.Sequential([
     MaxPooling2D(),
     Flatten(),
     Dense(512, activation='relu'),
-    Dense(1, activation='sigmoid')
+    Dense(10, activation='sigmoid')
 ])
 # Compile model
 model.compile(optimizer='adam',
-              loss='binary_crossentropy',
+              loss = tf.keras.losses.SparseCategoricalCrossentropy(),
               metrics=['accuracy'])
 model.summary()     # print model summary
 
@@ -125,11 +127,9 @@ plt.plot(epochs_range, val_loss, label='Validation Loss')
 plt.legend(loc='upper right')
 plt.xlabel("Number of epochs")
 plt.ylabel("Loss")
-plt.title('Training and Validation Loss on the mnist numbers data')
+plt.title('Training and Validation Loss')
 save_fig("cnn_train_test_score", folder=folder, extension='pdf')
 save_fig("cnn_train_test_score", folder=folder, extension='png')
 plt.show()
-
-
 
 

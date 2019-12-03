@@ -55,3 +55,5 @@ def plotImages(images_arr, folder= "", rgb=True, show=False):
         save_fig("sample_images", folder=folder, extension='png')
     if show == True:
         plt.show()
+    else:
+        plt.close()
