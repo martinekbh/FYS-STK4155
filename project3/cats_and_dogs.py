@@ -56,6 +56,11 @@ batch_size = 128
 epochs = 15
 IMG_HEIGHT = 150
 IMG_WIDTH = 150
+color_mode = 'rgb'
+if color_mode == 'grayscale':
+    img_layers = 1
+elif color_mode == 'rgb':
+    img_layers = 3
 
 # Use ImageDataGenerator to read images from disk and
 # convert the images to into batches of tensors
@@ -66,17 +71,17 @@ train_data_gen = train_image_generator.flow_from_directory(batch_size=batch_size
                                                            directory=train_dir,
                                                            shuffle=True,
                                                            target_size=(IMG_HEIGHT, IMG_WIDTH),
-                                                           color_mode='rgb',
+                                                           color_mode = color_mode,
                                                            class_mode='binary')
 
 val_data_gen = validation_image_generator.flow_from_directory(batch_size=batch_size,
                                                               directory=validation_dir,
                                                               target_size=(IMG_HEIGHT, IMG_WIDTH),
-                                                              color_mode='rgb',
+                                                              color_mode = color_mode,
                                                               class_mode='binary')
 
 sample_training_images, _ = next(train_data_gen)
-
+print(sample_training_images.shape)
 # Show some of the pictures from the training set
 plotImages(sample_training_images[:5], folder="cats_and_dogs")
 
@@ -84,13 +89,13 @@ plotImages(sample_training_images[:5], folder="cats_and_dogs")
 # Create CNN model and record the time it takes
 start_time = time.time()
 print("\nCreate Convoluted Neural Network model...")
-image_shape = (IMG_HEIGHT, IMG_WIDTH, 3)
+image_shape = (IMG_HEIGHT, IMG_WIDTH, img_layers)
 model = Sequential([
-    Conv2D(16, 3, padding='same', activation='relu', input_shape=image_shape),
+    Conv2D(16, img_layers, padding='same', activation='relu', input_shape=image_shape),
     MaxPooling2D(),
-    Conv2D(32, 3, padding='same', activation='relu'),
+    Conv2D(32, img_layers, padding='same', activation='relu'),
     MaxPooling2D(),
-    Conv2D(64, 3, padding='same', activation='relu'),
+    Conv2D(64, img_layers, padding='same', activation='relu'),
     MaxPooling2D(),
     Flatten(),
     Dense(512, activation='relu'),
@@ -138,7 +143,7 @@ plt.legend(loc='upper right')
 plt.xlabel("Number of epochs")
 plt.ylabel("Loss")
 plt.title('Training and Validation Loss')
-save_fig("cnn_train_test_score", folder="cats_and_dogs", extension='pdf')
-save_fig("cnn_train_test_score", folder="cats_and_dogs", extension='png')
+save_fig("cnn_train_test_score_CD", folder="cats_and_dogs", extension='pdf')
+save_fig("cnn_train_test_score_CD", folder="cats_and_dogs", extension='png')
 plt.show()
 
