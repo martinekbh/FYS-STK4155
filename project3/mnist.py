@@ -108,7 +108,7 @@ def fitSimpleCNN(batch_size=128, epochs=30):
     print(f"\n------------------\nCNN COMPUTING TIME: {computing_time}")
 
     # Plot training/test accuracy and loss (error)
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(10, 8))
     plt.subplot(1, 2, 1)
     plt.plot(epochs_range, acc, label='Training Accuracy')
     plt.plot(epochs_range, val_acc, label='Validation Accuracy')
@@ -126,6 +126,11 @@ def fitSimpleCNN(batch_size=128, epochs=30):
     save_fig("cnn_train_test_score_MNIST", folder=folder, extension='pdf')
     save_fig("cnn_train_test_score_MNIST", folder=folder, extension='png')
     plt.show()
+
+    return model, fit
+
+    # Plot confusion matrix
+    #confusionMatrix(
 
 def loopOverBatchSize(batch_sizes, epochs=30):
     print("\n\n Looping over batch size...")
@@ -161,7 +166,7 @@ def loopOverBatchSize(batch_sizes, epochs=30):
                         validation_data = (x_test, y_test))
 
         # Results
-        fitted_models.append(fit)
+        fitted_models.append([model, fit])
         acc.append(fit.history['accuracy'])         # Accuracy on training set
         val_acc.append(fit.history['val_accuracy']) # Accuracy on validation (test) set
         loss.append(fit.history['loss'])            # Loss on training set
@@ -175,7 +180,7 @@ def loopOverBatchSize(batch_sizes, epochs=30):
 
     # Plot training/test accuracy and loss (error)
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w', 'darkgreen', 'orange']   # List of colors
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(10, 8))
     plt.subplot(1, 2, 1)
     for i in range(len(fitted_models)):
         plt.plot(epochs_range, acc[i], c = colors[i], linestyle='--',
@@ -200,6 +205,8 @@ def loopOverBatchSize(batch_sizes, epochs=30):
     save_fig("cnn_train_test_score_different_batchsizes_MNIST", folder=folder, extension='png')
     plt.show()
 
+    return fitted_models
+
 def loopOverLayers(num_layers, batch_size=64, epochs=30):
     print("\n\n Looping over the number of layers...")
     acc = []
@@ -211,8 +218,6 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30):
 
     for l in range(num_layers):
         print(f"Build NeuralNetwork model...")
-        # Build Convoluted Neural Network
-
         # Input layer
         model = tf.keras.Sequential([
             Conv2D(28, 1, padding='same', activation='relu', input_shape=image_shape),
@@ -220,16 +225,14 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30):
 
         # Add hidden layers
         for k in range(l):
-            model.add(Conv2D(32, 1, padding='same', activation='relu'),
-                MaxPooling2D(),
-                Conv2D(64, 1, padding='same', activation='relu'),
-                MaxPooling2D())
+            model.add(tf.keras.layers.Conv2D(64, 1, padding='same', activation='relu'))
+            model.add(tf.keras.layers.MaxPooling2D())
 
         # Output layers 
-        model.add([Flatten(),
-            Dense(512, activation='relu'),
-            Dense(10, activation='sigmoid')
-        ])
+        model.add(Flatten())
+        model.add(Dense(512, activation='relu'))
+        model.add(Dense(10, activation='sigmoid'))
+
         # Compile model
         model.compile(optimizer='adam',
                       loss = tf.keras.losses.SparseCategoricalCrossentropy(),
@@ -239,9 +242,8 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30):
                         batch_size=batch_size,
                         epochs=epochs,
                         validation_data = (x_test, y_test))
-
         # Results
-        fitted_models.append(fit)
+        fitted_models.append([model, fit])
         acc.append(fit.history['accuracy'])         # Accuracy on training set
         val_acc.append(fit.history['val_accuracy']) # Accuracy on validation (test) set
         loss.append(fit.history['loss'])            # Loss on training set
@@ -256,7 +258,7 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30):
 
     # Plot training/test accuracy and loss (error)
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w', 'darkgreen', 'orange']   # List of colors
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(10, 8))
     plt.subplot(1, 2, 1)
     for i in range(num_layers):
         plt.plot(epochs_range, acc[i], c = colors[i], linestyle='--',
@@ -280,6 +282,8 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30):
     save_fig("cnn_train_test_score_different_numlayers_MNIST", folder=folder, extension='pdf')
     save_fig("cnn_train_test_score_different_numlayers_MNIST", folder=folder, extension='png')
     plt.show()
+
+    return fitted_models
    
 
 #fitSimpleCNN()

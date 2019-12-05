@@ -1,6 +1,9 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import Counter
+import tensorflow as tf
+import seaborn
 
 
 # Where to save the figures and data files
@@ -69,3 +72,23 @@ def plotImages(images_arr, folder= "", rgb=True, show=False):
         plt.show()
     else:
         plt.close()
+
+
+def confusionMatrix(ypred, ytrue):
+    categories = np.arange(np.max(ytrue) + 1)
+    n_categories = len(categories)      # Find the number of categories    
+    con_matr = tf.math.confusion_matrix(labels=ytrue, predictions=ypred).numpy()
+    con_matr_normalized = np.round(con_matr.astype('float')/con_matr.sum(axis=1)[:, np.newaxis], decimals=2)  
+    
+
+    # plot
+    figure = plt.figure()
+    seaborn.heatmap(con_matr, annot=True, cmap=plt.cm.Purples)
+    plt.tight_layout()
+    plt.ylabel("True number")
+    plt.xlabel("Predicted number")
+    plt.show()
+
+
+
+
