@@ -49,40 +49,28 @@ x_train = x_train.reshape(x_train.shape[0], IMG_HEIGHT, IMG_WIDTH, 1)
 x_test = x_test.reshape(x_test.shape[0], IMG_HEIGHT, IMG_WIDTH, 1)
 image_shape = (IMG_HEIGHT, IMG_WIDTH, 1)
 
-def fitSimpleCNN(batch_size=128, epochs=30):
+def fitCNN(batch_size=32, epochs=18):
     start_time = time.time()    # For recording the time the NN takes
     print(f"Build NeuralNetwork model...")
     # Build Convoluted Neural Network
     model = tf.keras.Sequential([
-        Conv2D(28, 1, padding='same', activation='relu', input_shape=image_shape),
+        Conv2D(28, kernel_size = (3,3), padding='same', activation='relu', input_shape=image_shape),
         MaxPooling2D(),
-        Conv2D(32, 1, padding='same', activation='relu'),
-        MaxPooling2D(),
-        Conv2D(64, 1, padding='same', activation='relu'),
-        MaxPooling2D(),
+        #Conv2D(32, 1, padding='same', activation='relu'),
+        #MaxPooling2D(),
+        #Conv2D(64, kernel_size=(3,3), padding='same', activation='relu'),
+        #MaxPooling2D(),
         Flatten(),
-        Dense(512, activation='relu'),
-        Dense(10, activation='sigmoid')
+        #Dense(512, activation='relu'),
+        Dense(128, activation='relu'),
+        #Dropout(0.2),
+        Dense(10, activation='softmax')
     ])
     # Compile model
     model.compile(optimizer='adam',
                   loss = tf.keras.losses.SparseCategoricalCrossentropy(),
                   metrics=['accuracy'])
     model.summary()     # print model summary
-
-    """
-    model = tf.keras.Sequential()
-    # Add dense connected layer with 64 units:
-    model.add(layers.Dense(60, activation='relu'))
-    # Add one more
-    model.add(layers.Dense(60, activation='relu'))
-    # Add output layer
-    model.add(layers.Dense(10, activation='softmax'))
-
-    model.compile(optimizer = tf.keras.optimizers.Adam(0.01),
-                    loss = tf.keras.losses.CategoricalCrossentropy(),
-                    metrics = [tf.keras.metrics.CategoricalAccuracy()])
-    """
 
     print("\nFit model on training data")
     fit = model.fit(x_train, y_train,
@@ -101,6 +89,9 @@ def fitSimpleCNN(batch_size=128, epochs=30):
     loss = fit.history['loss']              # Loss on training set
     val_loss = fit.history['val_loss']      # Loss on validation (test) set
     epochs_range = range(epochs)
+
+    print(f"\nModel performance:")
+    model.evaluate(x_test, y_test)
 
     # Print the CNN computation time
     stop_time = time.time()
@@ -127,12 +118,16 @@ def fitSimpleCNN(batch_size=128, epochs=30):
     save_fig("cnn_train_test_score_MNIST", folder=folder, extension='png')
     plt.show()
 
+    # Make confusion matrix:
+    pred = model.predict_classes(x_test)
+    con_matr = confusionMatrix(pred, y_test, figurename="cnn_consufion_matrix_MNIST", folder=folder, show=True)
+
     return model, fit
 
     # Plot confusion matrix
     #confusionMatrix(
 
-def loopOverBatchSize(batch_sizes, epochs=30):
+def loopOverBatchSize(batch_sizes, epochs=10):
     print("\n\n Looping over batch size...")
     acc = []
     val_acc = []
@@ -153,7 +148,7 @@ def loopOverBatchSize(batch_sizes, epochs=30):
             MaxPooling2D(),
             Flatten(),
             Dense(512, activation='relu'),
-            Dense(10, activation='sigmoid')
+            Dense(10, activation='softmax')
         ])
         # Compile model
         model.compile(optimizer='adam',
@@ -217,11 +212,11 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30):
     start_time = time.time()    # For recording the time the NN takes
 
     for l in range(num_layers):
-        print(f"Build NeuralNetwork model...")
+        print(f"\n--- Build NeuralNetwork model with {l} hidden conv2D layers")
         # Input layer
-        model = tf.keras.Sequential([
-            Conv2D(28, 1, padding='same', activation='relu', input_shape=image_shape),
-            MaxPooling2D()])
+        model = tf.keras.Sequential()
+        model.add(Conv2D(32, 1, padding='same', activation='relu', input_shape=image_shape))
+        model.add(MaxPooling2D())
 
         # Add hidden layers
         for k in range(l):
@@ -230,8 +225,8 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30):
 
         # Output layers 
         model.add(Flatten())
-        model.add(Dense(512, activation='relu'))
-        model.add(Dense(10, activation='sigmoid'))
+        model.add(Dense(64, activation='relu'))
+        model.add(Dense(10, activation='softmax'))
 
         # Compile model
         model.compile(optimizer='adam',
@@ -286,7 +281,7 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30):
     return fitted_models
    
 
-#fitSimpleCNN()
+#fitCNN()
 #loopOverBatchSize(batch_sizes = [128, 96, 64, 32, 16], epochs = 30)
-loopOverLayers(1)
+#loopOverLayers(3)
 

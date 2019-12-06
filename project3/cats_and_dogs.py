@@ -25,6 +25,7 @@ PATH = os.path.join(os.path.dirname(path_to_zip), 'cats_and_dogs_filtered')
 # Path to the training and the testing data
 train_dir = os.path.join(PATH, 'train')
 validation_dir = os.path.join(PATH, 'validation')
+folder = "cats_and_dogs"
 
 # Path to the training/test data divided into cats and dogs
 train_cats_dir = os.path.join(train_dir, 'cats')  # directory with our training cat pictures
@@ -61,6 +62,7 @@ if color_mode == 'grayscale':
     img_layers = 1
 elif color_mode == 'rgb':
     img_layers = 3
+image_shape = (IMG_HEIGHT, IMG_WIDTH, img_layers)
 
 # Use ImageDataGenerator to read images from disk and
 # convert the images to into batches of tensors
@@ -85,65 +87,177 @@ print(sample_training_images.shape)
 # Show some of the pictures from the training set
 plotImages(sample_training_images[:5], folder="cats_and_dogs")
 
+def fitCNN(batch_size = 128, epochs = 15):
+    train_data_gen = train_image_generator.flow_from_directory(batch_size=batch_size,
+                                                           directory=train_dir,
+                                                           shuffle=True,
+                                                           target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                           color_mode = color_mode,
+                                                           class_mode='binary')
 
-# Create CNN model and record the time it takes
-start_time = time.time()
-print("\nCreate Convoluted Neural Network model...")
-image_shape = (IMG_HEIGHT, IMG_WIDTH, img_layers)
-model = Sequential([
-    Conv2D(16, img_layers, padding='same', activation='relu', input_shape=image_shape),
-    MaxPooling2D(),
-    Conv2D(32, img_layers, padding='same', activation='relu'),
-    MaxPooling2D(),
-    Conv2D(64, img_layers, padding='same', activation='relu'),
-    MaxPooling2D(),
-    Flatten(),
-    Dense(512, activation='relu'),
-    Dense(1, activation='sigmoid')
-])
-# Compile model
-model.compile(optimizer='adam',
-              loss='binary_crossentropy',
-              metrics=['accuracy'])
-model.summary()     # print model summary
+    val_data_gen = validation_image_generator.flow_from_directory(batch_size=batch_size,
+                                                              directory=validation_dir,
+                                                              target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                              color_mode = color_mode,
+                                                              class_mode='binary')
 
-# Train the model 
-history = model.fit_generator(
-    train_data_gen,
-    steps_per_epoch=total_train // batch_size,
-    epochs=epochs,
-    validation_data=val_data_gen,
-    validation_steps=total_val // batch_size
-)
+    # Create CNN model and record the time it takes
+    start_time = time.time()
+    print("\nCreate Convoluted Neural Network model...")
+    image_shape = (IMG_HEIGHT, IMG_WIDTH, img_layers)
+    model = Sequential([
+        Conv2D(32, img_layers, padding='same', activation='relu', input_shape=image_shape),
+        MaxPooling2D(),
+        Conv2D(32, img_layers, padding='same', activation='relu'),
+        MaxPooling2D(),
+        Conv2D(32, img_layers, padding='same', activation='relu'),
+        MaxPooling2D(),
+        Flatten(),
+        Dense(512, activation='relu'),
+        Dense(1, activation='sigmoid')
+    ])
+    # Compile model
+    model.compile(optimizer='adam',
+                  loss='binary_crossentropy',
+                  metrics=['accuracy'])
+    model.summary()     # print model summary
 
-# Results
-acc = history.history['accuracy']
-val_acc = history.history['val_accuracy']
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-epochs_range = range(epochs)
+    # Train the model 
+    history = model.fit_generator(
+        train_data_gen,
+        steps_per_epoch=total_train // batch_size,
+        epochs=epochs,
+        validation_data=val_data_gen,
+        validation_steps=total_val // batch_size
+    )
+    results = model.evaluate_generator(val_data_gen)
+    print(results)
 
-stop_time = time.time()
-computing_time = stop_time - start_time
-print(f"\n------------------\nCNN COMPUTING TIME: {computing_time}")
 
-# Plot training/test accuracy and loss (error)
-plt.figure(figsize=(8, 8))
-plt.subplot(1, 2, 1)
-plt.plot(epochs_range, acc, label='Training Accuracy')
-plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-plt.legend(loc='lower right')
-plt.xlabel("Number of epochs")
-plt.ylabel("Accuracy")
-plt.title('Training and Validation Accuracy')
-plt.subplot(1, 2, 2)
-plt.plot(epochs_range, loss, label='Training Loss')
-plt.plot(epochs_range, val_loss, label='Validation Loss')
-plt.legend(loc='upper right')
-plt.xlabel("Number of epochs")
-plt.ylabel("Loss")
-plt.title('Training and Validation Loss')
-save_fig("cnn_train_test_score_CD", folder="cats_and_dogs", extension='pdf')
-save_fig("cnn_train_test_score_CD", folder="cats_and_dogs", extension='png')
-plt.show()
+    # Results
+    acc = history.history['accuracy']
+    val_acc = history.history['val_accuracy']
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    epochs_range = range(epochs)
 
+    stop_time = time.time()
+    computing_time = stop_time - start_time
+    print(f"\n------------------\nCNN COMPUTING TIME: {computing_time}")
+
+    # Plot training/test accuracy and loss (error)
+    plt.figure(figsize=(8, 8))
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_range, acc, label='Training Accuracy')
+    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+    plt.legend(loc='lower right')
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Accuracy")
+    plt.title('Training and Validation Accuracy')
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_range, loss, label='Training Loss')
+    plt.plot(epochs_range, val_loss, label='Validation Loss')
+    plt.legend(loc='upper right')
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Loss")
+    plt.title('Training and Validation Loss')
+    save_fig("cnn_train_test_score_CD", folder="cats_and_dogs", extension='pdf')
+    save_fig("cnn_train_test_score_CD", folder="cats_and_dogs", extension='png')
+    plt.show()
+
+    return model, history
+
+def loopOverBatchSize(batch_sizes, epochs=15):
+    print(f"\n\nLooping over batch size...")
+    acc = []
+    val_acc = []
+    loss = []
+    val_loss = []
+    fitted_models = []
+    start_time = time.time()    # For recording the time the NN takes
+
+    for batch_size in batch_sizes:
+        train_data_gen = train_image_generator.flow_from_directory(batch_size=batch_size,
+                                                           directory=train_dir,
+                                                           shuffle=True,
+                                                           target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                           color_mode = color_mode,
+                                                           class_mode='binary')
+
+        val_data_gen = validation_image_generator.flow_from_directory(batch_size=batch_size,
+                                                              directory=validation_dir,
+                                                              target_size=(IMG_HEIGHT, IMG_WIDTH),
+                                                              color_mode = color_mode,
+                                                              class_mode='binary')
+        model = Sequential([
+            Conv2D(32, img_layers, padding='same', activation='relu', input_shape=image_shape),
+            MaxPooling2D(),
+            Conv2D(32, img_layers, padding='same', activation='relu'),
+            MaxPooling2D(),
+            Conv2D(32, img_layers, padding='same', activation='relu'),
+            MaxPooling2D(),
+            Flatten(),
+            Dense(512, activation='relu'),
+            Dense(1, activation='sigmoid')
+        ])
+        # Compile model
+        model.compile(optimizer='adam',
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
+        model.summary()     # print model summary
+
+        # Train the model 
+        fit = model.fit_generator(
+            train_data_gen,
+            steps_per_epoch=total_train // batch_size,
+            epochs=epochs,
+            validation_data=val_data_gen,
+            validation_steps=total_val // batch_size
+        )
+
+
+        print(f"\n--- Batch size {batch_size}...")
+
+        # Results
+        fitted_models.append([model, fit])
+        acc.append(fit.history['accuracy'])         # Accuracy on training set
+        val_acc.append(fit.history['val_accuracy']) # Accuracy on validation (test) set
+        loss.append(fit.history['loss'])            # Loss on training set
+        val_loss.append(fit.history['val_loss'])    # Loss on validation (test) set
+    epochs_range = range(epochs)
+
+    # Print the CNN computation time
+    stop_time = time.time()
+    computing_time = stop_time - start_time
+    print(f"\n------------------\nCOMPUTING TIME: {computing_time}")
+
+    # Plot training/test accuracy and loss (error)
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w', 'darkgreen', 'orange']   # List of colors
+    plt.figure(figsize=(10, 8))
+    plt.subplot(1, 2, 1)
+    for i in range(len(fitted_models)):
+        plt.plot(epochs_range, acc[i], c = colors[i], linestyle='--',
+                label=f'Batch size {batch_sizes[i]} (train)')
+        plt.plot(epochs_range, val_acc[i], c = colors[i], linestyle='-',
+                label=f'Batch size {batch_sizes[i]} (test)')
+    plt.legend(loc='lower right')
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Accuracy")
+    plt.title('Training and Validation Accuracy')
+    plt.subplot(1, 2, 2)
+    for i in range(len(fitted_models)):
+        plt.plot(epochs_range, loss[i], c = colors[i], linestyle='--',
+                label=f'Batch size {batch_sizes[i]} (train)')
+        plt.plot(epochs_range, val_loss[i], c = colors[i], linestyle='-',
+                label=f'Batch size {batch_sizes[i]} (test)')
+    plt.legend(loc='upper right')
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Loss")
+    plt.title('Training and Validation Loss')
+    save_fig("cnn_train_test_score_different_batchsizes_CD", folder=folder, extension='pdf')
+    save_fig("cnn_train_test_score_different_batchsizes_CD", folder=folder, extension='png')
+    plt.show()
+
+    return fitted_models
+
+fitted_models = loopOverBatchSize([64, 32, 16, 8])

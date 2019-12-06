@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from collections import Counter
 import tensorflow as tf
 import seaborn
+import pandas as pd
 
 
 # Where to save the figures and data files
@@ -74,21 +75,39 @@ def plotImages(images_arr, folder= "", rgb=True, show=False):
         plt.close()
 
 
-def confusionMatrix(ypred, ytrue):
+def confusionMatrix(ypred, ytrue, figurename=None, folder='', show=False):
     categories = np.arange(np.max(ytrue) + 1)
     n_categories = len(categories)      # Find the number of categories    
     con_matr = tf.math.confusion_matrix(labels=ytrue, predictions=ypred).numpy()
     con_matr_normalized = np.round(con_matr.astype('float')/con_matr.sum(axis=1)[:, np.newaxis], decimals=2)  
-    
+
+    # save confusion matrix in dataframe and print
+    df = pd.DataFrame(con_matr_normalized, index = categories, columns = categories) 
+    print(f"\nConfusion matrix: \n{df}")
 
     # plot
     figure = plt.figure()
     seaborn.heatmap(con_matr, annot=True, cmap=plt.cm.Purples)
+
+    # fix for matplotlib (3.1.1) bug that cuts off top/bottom of seaborn viz
+    b, t = plt.ylim() # discover the values for bottom and top
+    b += 0.5 # Add 0.5 to the bottom
+    t -= 0.5 # Subtract 0.5 from the top
+    plt.ylim(b, t) # update the ylim(bottom, top) values
+
     plt.tight_layout()
-    plt.ylabel("True number")
-    plt.xlabel("Predicted number")
-    plt.show()
+    plt.ylabel("True category")
+    plt.xlabel("Predicted category")
+    
+    if figurename:
+        save_as(figurename, folder=folder, extension='pdf')
+        save_as(figurename, folder=folder, extension='png')
 
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
+    return df
 
 
