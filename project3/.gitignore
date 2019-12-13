@@ -1,0 +1,5 @@
+data/*
+data/*.*
+!/data/original_data/*
+!/data/original_data/train
+
