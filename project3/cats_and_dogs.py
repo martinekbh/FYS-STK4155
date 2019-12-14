@@ -83,6 +83,7 @@ val_data_gen = validation_image_generator.flow_from_directory(batch_size=batch_s
                                                               class_mode='binary')
 
 sample_training_images, _ = next(train_data_gen)
+sample_test_images, _ = next(test_data_gen)
 print(sample_training_images.shape)
 # Show some of the pictures from the training set
 plotImages(sample_training_images[:5], folder="cats_and_dogs")
@@ -165,7 +166,12 @@ def fitCNN(batch_size = 128, epochs = 15):
     save_fig("cnn_train_test_score_CD", folder="cats_and_dogs", extension='png')
     plt.show()
 
+
+    # Make predictions of the test/validation images
+    pred = model.
+
     return model, history
+
 
 def loopOverBatchSize(batch_sizes, epochs=15):
     print(f"\n\nLooping over batch size...")
@@ -260,4 +266,6 @@ def loopOverBatchSize(batch_sizes, epochs=15):
 
     return fitted_models
 
-fitted_models = loopOverBatchSize([64, 32, 16, 8])
+
+if __name__ == '__main__':
+    fitted_models = loopOverBatchSize([64, 32, 16, 8])

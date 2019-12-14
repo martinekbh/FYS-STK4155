@@ -13,64 +13,62 @@ from tensorflow.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2
 from skimage.color import rgb2gray
 
 
-folder = "cats_and_dogs"
+folder = "cats_and_dogs_cnn"
 
-# load data
-print("Loading data (cats and dogs)...")
-x_train_cats = np.load('data/cats_train_images.npy')
-y_train_cats = np.load('data/cats_train_categories.npy')
-x_train_dogs = np.load('data/dogs_train_images.npy')
-y_train_dogs = np.load('data/dogs_train_categories.npy')
-x_test_cats = np.load('data/cats_test_images.npy')
-y_test_cats = np.load('data/cats_test_categories.npy')
-x_test_dogs = np.load('data/dogs_test_images.npy')
-y_test_dogs = np.load('data/dogs_test_categories.npy')
-print("Data loaded!\n")
+def load_data():
+    # load data
+    print("Loading data (cats and dogs)...")
+    x_train_cats = np.load('data/cats_train_images.npy')
+    y_train_cats = np.load('data/cats_train_categories.npy')
+    x_train_dogs = np.load('data/dogs_train_images.npy')
+    y_train_dogs = np.load('data/dogs_train_categories.npy')
+    x_test_cats = np.load('data/cats_test_images.npy')
+    y_test_cats = np.load('data/cats_test_categories.npy')
+    x_test_dogs = np.load('data/dogs_test_images.npy')
+    y_test_dogs = np.load('data/dogs_test_categories.npy')
+    print("Data loaded!\n")
 
-x_train = np.concatenate((x_train_cats, x_train_dogs), axis=0)
-x_test = np.concatenate((x_test_cats, x_test_dogs), axis=0)
-y_train = np.concatenate((y_train_cats, y_train_dogs), axis=None)
-y_test = np.concatenate((y_test_cats, y_test_dogs), axis=None)
-print(x_train.shape)
+    x_train = np.concatenate((x_train_cats, x_train_dogs), axis=0)
+    x_test = np.concatenate((x_test_cats, x_test_dogs), axis=0)
+    y_train = np.concatenate((y_train_cats, y_train_dogs), axis=None)
+    y_test = np.concatenate((y_test_cats, y_test_dogs), axis=None)
+    print(x_train.shape)
 
-# Scale data (min-max scaling)
-x_train = (x_train - np.min(x_train))/(np.max(x_train) - np.min(x_train))
-x_test = (x_test - np.min(x_test))/(np.max(x_test) - np.min(x_test))
+    # Scale data (min-max scaling)
+    x_train = (x_train - np.min(x_train))/(np.max(x_train) - np.min(x_train))
+    x_test = (x_test - np.min(x_test))/(np.max(x_test) - np.min(x_test))
 
 
-# Shuffle the arrays so cats and dogs are not sorted
-shuffled_indexes = np.random.permutation(len(x_train))
-x_train = x_train[shuffled_indexes]
-y_train = y_train[shuffled_indexes]
-shuffled_indexes = np.random.permutation(len(x_test))
-x_test = x_test[shuffled_indexes]
-y_test = y_test[shuffled_indexes]
+    # Shuffle the arrays so cats and dogs are not sorted
+    shuffled_indexes = np.random.permutation(len(x_train))
+    x_train = x_train[shuffled_indexes]
+    y_train = y_train[shuffled_indexes]
+    shuffled_indexes = np.random.permutation(len(x_test))
+    x_test = x_test[shuffled_indexes]
+    y_test = y_test[shuffled_indexes]
 
-# data shape parameters
-image_shape = x_train.shape[1:]
-IMG_HEIGHT = image_shape[0]
-IMG_WIDTH = image_shape[1]
-print(f"Shape of the images: {IMG_HEIGHT} x {IMG_WIDTH}")
+    return x_train, y_train, x_test, y_test
 
-plt.imshow(x_train[0])
-plt.show()
-print(y_train[0])
+def plotSampleImages(x_train, y_train):
+    # Plot a sample of the images
+    sample_indexes = np.random.choice(range(len(x_train)), size=5)
+    print(sample_indexes)
+    sample_images = x_train[sample_indexes]
+    print(sample_images)
+    #sample_images = np.random.choice(x_train, size=(5,IMG_HEIGHT, IMG_WIDTH))
+    plotImages(sample_images, folder=folder, show=True)
+    print(y_train[sample_indexes])
 
-# Plot a sample of the images
-sample_indexes = np.random.choice(range(len(x_train)), size=5)
-print(sample_indexes)
-sample_images = x_train[sample_indexes]
-print(sample_images)
-#sample_images = np.random.choice(x_train, size=(5,IMG_HEIGHT, IMG_WIDTH))
-plotImages(sample_images, folder=folder, show=True)
-print(y_train[sample_indexes])
-
-def fitCNN(batch_size=64, epochs=15):
+def fitCNN(x_train, y_train, x_test, y_test, batch_size=64, epochs=15):
     """ Fits a simple CNN on the dataset """
     print("\nFit CNN with batch size {batch_size} and {epochs} epochs")
-    model = Sequential()
+
+    image_shape = x_train.shape[1:]
+    IMG_HEIGHT = image_shape[0]
+    IMG_WIDTH = image_shape[1]
+
     model = Sequential([
-        Conv2D(32, (3,3), img_layers, padding='same', activation='relu', 
+        Conv2D(32, (3,3), padding='same', activation='relu', 
                 input_shape=image_shape, kernel_initializer = 'he_uniform'),
         MaxPooling2D((2,2)),
         Flatten(),
@@ -90,17 +88,23 @@ def fitCNN(batch_size=64, epochs=15):
                         epochs = epochs,
                         validation_data = (x_test, y_test))
 
+    return model, history 
+
 def evaluateModel(model, history, save_id=""):
     """ Evaluates a given model and produces plots """
     results = model.evaluate(x_test, y_test)
     print(results)
+
+    image_shape = x_train.shape[1:]
+    IMG_HEIGHT = image_shape[0]
+    IMG_WIDTH = image_shape[1]
 
     # Results
     acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
     loss = history.history['loss']
     val_loss = history.history['val_loss']
-    epochs_range = range(epochs)
+    epochs_range = range(len(acc))
 
     stop_time = time.time()
     computing_time = stop_time - start_time
@@ -122,8 +126,8 @@ def evaluateModel(model, history, save_id=""):
     plt.xlabel("Number of epochs")
     plt.ylabel("Loss")
     plt.title('Training and Validation Loss')
-    save_fig("cnn_train_test_score_CD", folder="cats_and_dogs", extension='pdf')
-    save_fig("cnn_train_test_score_CD", folder="cats_and_dogs", extension='png')
+    save_fig("cnn_train_test_score_CD", folder=folder, extension='pdf')
+    save_fig("cnn_train_test_score_CD", folder=folder, extension='png')
     plt.show()
 
     # Make predictions of the test/validation images
@@ -142,5 +146,14 @@ def evaluateModel(model, history, save_id=""):
 
 
 if __name__ == '__main__':
-    model, history = fitCNN()
+    # load data
+    x_train, y_train, x_test, y_test = load_data()
+
+    # data shape parameters
+    image_shape = x_train.shape[1:]
+    IMG_HEIGHT = image_shape[0]
+    IMG_WIDTH = image_shape[1]
+    print(f"Shape of the images: {IMG_HEIGHT} x {IMG_WIDTH}")
+
+    model, history = fitCNN(x_train, y_train, x_test, y_test)
     pred = evaluateModel(model, history)

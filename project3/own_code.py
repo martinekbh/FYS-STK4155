@@ -56,10 +56,17 @@ def plotImages(images_arr, folder= "", rgb=True, show=False):
         ax.axis('off')
     plt.tight_layout()
 
+    # place in correct folder
     if folder == "mnist":
         figure_name = "sample_images_MNIST"
     elif folder == "cats_and_dogs":
         figure_name = "sample_images_CD"
+    elif folder == "cats_and_dogs_cnn":
+        figure_name = "sample_images_CD_cnn"
+    elif folder == "cats_and_dogs_logreg":
+        figure_name = "sample_images_CD_logreg"
+    elif folder == "mnist_logreg":
+        figure_name = "sample_images_MNIST_logreg"
     else:
         figure_name = "sample_images"
 
@@ -79,7 +86,7 @@ def confusionMatrix(ypred, ytrue, figurename=None, folder='', show=False):
     categories = np.arange(np.max(ytrue) + 1)
     n_categories = len(categories)      # Find the number of categories    
     con_matr = tf.math.confusion_matrix(labels=ytrue, predictions=ypred).numpy()
-    con_matr_normalized = np.round(con_matr.astype('float')/con_matr.sum(axis=1)[:, np.newaxis], decimals=2)  
+    con_matr_normalized = np.around(con_matr.astype('float')/con_matr.sum(axis=1)[:, np.newaxis], decimals=2)  
 
     # save confusion matrix in dataframe and print
     df = pd.DataFrame(con_matr_normalized, index = categories, columns = categories) 
@@ -87,7 +94,7 @@ def confusionMatrix(ypred, ytrue, figurename=None, folder='', show=False):
 
     # plot
     figure = plt.figure()
-    seaborn.heatmap(con_matr, annot=True, cmap=plt.cm.Purples)
+    seaborn.heatmap(con_matr_normalized, annot=True, cmap=plt.cm.Purples)
 
     # fix for matplotlib (3.1.1) bug that cuts off top/bottom of seaborn viz
     b, t = plt.ylim() # discover the values for bottom and top
@@ -100,8 +107,8 @@ def confusionMatrix(ypred, ytrue, figurename=None, folder='', show=False):
     plt.xlabel("Predicted category")
     
     if figurename:
-        save_as(figurename, folder=folder, extension='pdf')
-        save_as(figurename, folder=folder, extension='png')
+        save_fig(figurename, folder=folder, extension='pdf')
+        save_fig(figurename, folder=folder, extension='png')
 
     if show:
         plt.show()
@@ -109,5 +116,86 @@ def confusionMatrix(ypred, ytrue, figurename=None, folder='', show=False):
         plt.close()
 
     return df
+
+def accuracy(y, pred):
+    """ Function for calculating classification accuracy """
+    y = y.ravel()
+    pred = pred.ravel()
+    return np.sum(y == pred) / len(y)
+
+
+def plotMisclassifiedImages(y_true, images, y_pred, figurename=None, folder="", rgb=True, show=True):
+    misclassified_inds = []     # The indexes of the misclassified images
+    index = 0
+    for label, pred in zip(y_true, y_pred):
+        if label != pred:
+            misclassified_inds.append(index)
+        index += 1
+    misclassified_imgs = [images[i] for i in misclassified_inds]
+    images_arr = misclassified_imgs
+
+    # Show the misclassified images in figure
+    n_images = len(misclassified_inds)
+    if n_images < 10:       # Plot 5 or less of the images
+        n_images = min(5, n_images)
+
+        fig, axes = plt.subplots(1, n_images, figsize=(4*n_images,4))
+        axes = axes.flatten()
+        grayscale = False
+        for img, ax in zip(images_arr, axes):
+            if img.shape[-1] == 1:                  # If image is grayscale
+                grayscale=True
+                IMG_HEIGHT = images_arr[0].shape[0]
+                IMG_WIDTH = images_arr[0].shape[1]
+                img = img.reshape(IMG_HEIGHT, IMG_WIDTH)    # Reshape
+                ax.imshow(img, cmap='gray')
+            elif rgb == False:
+                ax.imshow(img, cmap = 'Greys')
+            else:
+                ax.imshow(img)
+            ax.set_title(f"Predicted: {y_pred[misclassified_inds[i]]}, Actual: {y_true[misclassified_inds[i]]}",
+                            fontweight='bold', size=20)
+            i += 1
+            ax.axis('off')
+            plt.tight_layout()
+        plt.tight_layout()
+
+    elif n_images >= 10:    # Plot 10 of the images
+        fig, axes = plt.subplots(2, 5, figsize = (20, 8))
+        grayscale = False
+        axes = axes.flatten()
+        i = 0       # counter
+        for img, ax in zip(images_arr, axes):
+            if img.shape[-1] == 1:                  # If image is grayscale
+                grayscale=True
+                IMG_HEIGHT = images_arr[0].shape[0]
+                IMG_WIDTH = images_arr[0].shape[1]
+                img = img.reshape(IMG_HEIGHT, IMG_WIDTH)    # Reshape
+                ax.imshow(img, cmap='gray')
+            elif rgb == False:
+                ax.imshow(img, cmap = 'Greys')
+            else:
+                ax.imshow(img)
+
+            ax.set_title(f"Predicted: {y_pred[misclassified_inds[i]]}, Actual: {y_true[misclassified_inds[i]]}",
+                            fontweight='bold', size=20)
+            i += 1
+            ax.axis('off')
+            plt.tight_layout()
+        plt.tight_layout()
+
+   
+    # Save figure if name is given
+    if figurename != None:
+        figurename = figurename + "_" + folder
+        save_fig(figurename, folder=folder, extension='pdf')
+        save_fig(figurename, folder=folder, extension='png')
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+    return misclassified_imgs
 
 

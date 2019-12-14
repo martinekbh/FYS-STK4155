@@ -34,6 +34,7 @@ def sample_images():
     plotImages(sample_training_images, folder=folder, rgb = False)
 
 """
+# Visualise the number with index 111
 image_index = 111
 plt.imshow(x_train[image_index], cmap='Greys')
 plt.title(f"Example of handwritten {y_train[image_index]}")
@@ -50,12 +51,14 @@ x_test = x_test.reshape(x_test.shape[0], IMG_HEIGHT, IMG_WIDTH, 1)
 image_shape = (IMG_HEIGHT, IMG_WIDTH, 1)
 
 def fitCNN(batch_size=32, epochs=18):
+    """ Function that classifies the MNIST data with a simple CNN """
+
     start_time = time.time()    # For recording the time the NN takes
     print(f"Build NeuralNetwork model...")
     # Build Convoluted Neural Network
     model = tf.keras.Sequential([
         Conv2D(28, kernel_size = (3,3), padding='same', activation='relu', input_shape=image_shape),
-        MaxPooling2D(),
+        MaxPooling2D(pool_size=(2,2)),
         #Conv2D(32, 1, padding='same', activation='relu'),
         #MaxPooling2D(),
         #Conv2D(64, kernel_size=(3,3), padding='same', activation='relu'),
@@ -63,7 +66,7 @@ def fitCNN(batch_size=32, epochs=18):
         Flatten(),
         #Dense(512, activation='relu'),
         Dense(128, activation='relu'),
-        #Dropout(0.2),
+        Dropout(0.2),
         Dense(10, activation='softmax')
     ])
     # Compile model
@@ -114,20 +117,27 @@ def fitCNN(batch_size=32, epochs=18):
     plt.xlabel("Number of epochs")
     plt.ylabel("Loss")
     plt.title('Training and Validation Loss')
-    save_fig("cnn_train_test_score_MNIST", folder=folder, extension='pdf')
-    save_fig("cnn_train_test_score_MNIST", folder=folder, extension='png')
+    save_fig("cnn_train_test_score_dropout_MNIST", folder=folder, extension='pdf')
+    save_fig("cnn_train_test_score_dropout_MNIST", folder=folder, extension='png')
     plt.show()
 
     # Make confusion matrix:
     pred = model.predict_classes(x_test)
-    con_matr = confusionMatrix(pred, y_test, figurename="cnn_consufion_matrix_MNIST", folder=folder, show=True)
+    con_matr = confusionMatrix(pred, y_test, 
+            figurename="cnn_confusion_matrix_dropout_MNIST", folder=folder, show=True)
+
+    # Display some of the misclassified images
+    plotMisclassifiedImages(y_test, x_test.reshape(imgShape[0], 28,28), pred, 
+                figurename="sample_misclassified_images_mnist", folder = "mnist", rgb=False)                               
+            #x_test, pred, 
+            #figurename="sample_misclassified_images_dropout_mnist", folder=folder, rgb=False, show=True)
 
     return model, fit
 
-    # Plot confusion matrix
-    #confusionMatrix(
-
 def loopOverBatchSize(batch_sizes, epochs=10):
+    """ Function that evaluates and plots the performance of CNNs (on the MNIST data) 
+        with different batch sizes """
+
     print("\n\n Looping over batch size...")
     acc = []
     val_acc = []
@@ -203,6 +213,9 @@ def loopOverBatchSize(batch_sizes, epochs=10):
     return fitted_models
 
 def loopOverLayers(num_layers, batch_size=64, epochs=30):
+    """ Function that evaluates and plots the performance of CNNs with different 
+        number of hidden Conv2D and MaxPoolong2D layers. """
+
     print("\n\n Looping over the number of layers...")
     acc = []
     val_acc = []
@@ -274,6 +287,7 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30):
     plt.xlabel("Number of epochs")
     plt.ylabel("Loss")
     plt.title('Training and Validation Loss')
+    plt.tight_layout()
     save_fig("cnn_train_test_score_different_numlayers_MNIST", folder=folder, extension='pdf')
     save_fig("cnn_train_test_score_different_numlayers_MNIST", folder=folder, extension='png')
     plt.show()
@@ -281,7 +295,9 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30):
     return fitted_models
    
 
-#fitCNN()
-#loopOverBatchSize(batch_sizes = [128, 96, 64, 32, 16], epochs = 30)
-#loopOverLayers(3)
+if __name__ == '__main__':
+
+    fitCNN()
+    #loopOverBatchSize(batch_sizes = [128, 96, 64, 32, 16], epochs = 30)
+    #loopOverLayers(3)
 
