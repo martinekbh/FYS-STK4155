@@ -123,10 +123,13 @@ def fitCNN(batch_size=32, epochs=18):
 
     # Make confusion matrix:
     pred = model.predict_classes(x_test)
+    print(pred[:10])
+    print(y_test[:10])
     con_matr = confusionMatrix(pred, y_test, 
             figurename="cnn_confusion_matrix_dropout_MNIST", folder=folder, show=True)
 
     # Display some of the misclassified images
+    imgShape = x_test.shape
     plotMisclassifiedImages(y_test, x_test.reshape(imgShape[0], 28,28), pred, 
                 figurename="sample_misclassified_images_mnist", folder = "mnist", rgb=False)                               
             #x_test, pred, 
