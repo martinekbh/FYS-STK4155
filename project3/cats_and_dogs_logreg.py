@@ -4,6 +4,8 @@ from tensorflow import keras
 from LogReg import LogReg
 from own_code import *
 
+folder = "cats_and_dogs"
+
 
 def accuracy(y, pred):
     y = y.ravel()
@@ -13,7 +15,7 @@ def accuracy(y, pred):
 
 
 def cats_and_dogs_data_for_logreg():
-    cats_dogs = tf.keras.datasets.cats_and_dogs     # Load dataset
+    cats_and_dogs = tf.keras.datasets.cats_and_dogs     # Load dataset
     (x_train, y_train), (x_test, y_test) = cats_and_dogs.load_data()
 
     train_shape = x_train.shape
