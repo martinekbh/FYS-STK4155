@@ -7,13 +7,14 @@ from sklearn.preprocessing import OneHotEncoder
 from tensorflow.keras.utils import to_categorical
 from sklearn.linear_model import LogisticRegression
 from sklearn. metrics import log_loss
+from skimage.color import rgb2gray
 import time
 
 from tensorflow.keras.losses import categorical_crossentropy
 loss = categorical_crossentropy     # Loss function
 
 
-folder = "cats_and_dogs"
+folder = "cats_and_dogs_logreg"
 
 # load data
 print("Loading data (cats and dogs)...")
@@ -45,6 +46,13 @@ shuffled_indexes = np.random.permutation(len(x_test))
 x_test = x_test[shuffled_indexes]
 y_test = y_test[shuffled_indexes]
 
+# Reshape the data, and convert to grayscale
+x_train = rgb2gray(x_train)
+x_test = rgb2gray(x_test)
+print("Converting to grayscale images...")
+print(x_train.shape)
+
+
 # data shape parameters
 print(x_train.shape)
 image_shape = x_train.shape[1:]
@@ -63,8 +71,13 @@ print(f"The shape of each image is {image_shape}")
 sample_indexes = np.random.choice(range(len(x_train)), size=5)
 sample_images = x_train[sample_indexes]
 #sample_images = np.random.choice(x_train, size=(5,IMG_HEIGHT, IMG_WIDTH))
-plotImages(sample_images, folder=folder)
+plotImages(sample_images, folder=folder, rgb=False)
 print(y_train[sample_indexes])
+
+# Flatten the images
+x_train = x_train.ravel().reshape(x_train.shape[0], IMG_HEIGHT*IMG_WIDTH)
+x_test = x_test.ravel().reshape(x_test.shape[0], IMG_HEIGHT*IMG_WIDTH)
+print(x_train.shape)
 
 def LogReg(x_train, y_train, x_test, y_test):
     print("\nDoing logistic regression on the Cats vs Dogs data....")
@@ -100,101 +113,13 @@ def LogReg(x_train, y_train, x_test, y_test):
 
     # Identify and plot the misclassified images
     imgShape = x_test.shape
-    plotMisclassifiedImages(y_test, x_test.reshape(imgShape[0],28,28), pred_test,
+    plotMisclassifiedImages(y_test, x_test.reshape(imgShape[0],IMG_HEIGHT,IMG_WIDTH), pred_test,
             figurename="sample_misclassified_images", folder=folder, rgb=False)
 
     return logreg
-
-
-def LogReg_analyze_cats_and_dogs(x_train, y_train, x_test, y_test, epochs, batch_size, n_image):
-    n_train = n_image
-    n_test = int(n_train/100)
-    n_minibatches = int(len(x_train)/batch_size)
-
-    test_acc_list = []      # Test accuracy for each iteration
-    train_acc_list = []     # Train accuracy for each iteration
-    test_loss_list = []     # Test loss for each iteration
-    train_loss_list = []    # Train loss for each iteration
-
-    for i in range(1, epochs+1):  # Loop over number of epochs
-        print(f"{i}/{epochs} max epochs")
-        #logreg_analyzer = LogReg(x_train, y_train)
-        #logreg_analyzer.sgd(n_epochs = i, n_minibatches = n_minibatches)
-        logreg_analyzer = LogisticRegression(solver="lbfgs", multi_class="multinomial", max_iter=1e4)
-        logreg_analyzer.fit(x_train, y_train)
-
-        # Predict class of test set and store accuracy score
-        pred_test = logreg_analyzer.predict(x_test)
-        test_acc_list.append(accuracy(y_test, pred_test))
-        test_loss_list.append(log_loss(y_test, to_categorical(pred_test) ))
-                    #labels=[0,1,2,3,4,5,6,7,8,9]))
-
-        # Predict class of train set and store accuracy score
-        pred_train = logreg_analyzer.predict(x_train)
-        train_acc_list.append(accuracy(y_train, pred_train))
-        train_loss_list.append(log_loss(y_train, to_categorical(pred_train)))
-
-
-    return test_acc_list, train_acc_list, test_loss_list, train_loss_list, np.arange(1,epochs+1)
-
-
-def plotter(xplot, yplot, plot_label_x, plot_label_y, plot_title, save_text, leg, yplot2 = None, title2=None):
-
-    if yplot2 != None:  # Two subfigures
-        figure = plt.figure(figsize=(10,8))
-        plt.subplot(1,2,1)
-        for y in yplot:
-            plt.plot(xplot, y)
-        plt.legend(leg)
-        plt.title(plot_title)
-        plt.xlabel(plot_label_x)
-        plt.ylabel(plot_label_y)
-
-        plt.subplot(1,2,2)
-        for y2 in yplot2:
-            plt.plot(xplot, y2)
-        plt.legend(leg)
-        plt.title(title2)
-        plt.xlabel(plot_label_x)
-        plt.ylabel(plot_label_y)
-
-    else:               # Only one figure
-        figure = plt.figure(figsize = (5,8))
-
-        if isinstance(yplot, list):
-            for y in yplot:
-                plt.plot(xplot, y)
-        else:
-            plt.plot(xplot, yplot)
-
-        plt.xlabel(plot_label_x)
-        plt.ylabel(plot_label_y)
-        plt.title(plot_title)
-        plt.legend(leg)
-
-    plt.tight_layout()
-    save_fig(save_text, folder=folder, extension='pdf')
-    save_fig(save_text, folder=folder, extension='png')
-    plt.show()
-
 
 
 if "__main__" == __name__:
     #x_train, y_train, x_test, y_test = mnist_data_for_logreg()
 
     logreg = LogReg(x_train, y_train, x_test, y_test)
-
-    '''
-    test_acc_list, train_acc_list, test_loss_list, \
-            train_loss_list, epoch_interval = LogReg_analyze_mnist(x_train, y_train, x_test, y_test, 10, 30, 10000)
-
-    # Make plot
-    x_label = "epoch"
-    y_label = "accuracy"
-    title = "Accuracy vs. Epochs (Logistic Regression)"
-    title2 = "Loss vs. Epochs"
-    save_text = "epoch_vs_accuracy"
-    leg = ["train", "test"]
-    plotter(epoch_interval, [train_acc_list, test_acc_list], x_label, y_label, \
-            title, save_text, leg, [train_loss_list, test_loss_list], title2)
-    '''

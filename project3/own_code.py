@@ -50,7 +50,7 @@ def plotImages(images_arr, folder= "", rgb=True, show=False):
             img = img.reshape(IMG_HEIGHT, IMG_WIDTH)    # Reshape
             ax.imshow(img, cmap='gray')
         elif rgb == False:
-            ax.imshow(img, cmap = 'Greys')
+            ax.imshow(img, cmap = 'gray')
         else:
             ax.imshow(img)
         ax.axis('off')
@@ -143,7 +143,7 @@ def plotMisclassifiedImages(y_true, images, y_pred, figurename=None, folder="", 
                 img = img.reshape(IMG_HEIGHT, IMG_WIDTH)    # Reshape
                 ax.imshow(img, cmap='gray')
             elif rgb == False:
-                ax.imshow(img, cmap = 'Greys')
+                ax.imshow(img, cmap = 'gray')
             else:
                 ax.imshow(img)
             ax.set_title(f"Predicted: {y_pred[misclassified_inds[i]]}, Actual: {y_true[misclassified_inds[i]]}",
@@ -166,7 +166,7 @@ def plotMisclassifiedImages(y_true, images, y_pred, figurename=None, folder="", 
                 img = img.reshape(IMG_HEIGHT, IMG_WIDTH)    # Reshape
                 ax.imshow(img, cmap='gray')
             elif rgb == False:
-                ax.imshow(img, cmap = 'Greys')
+                ax.imshow(img, cmap = 'gray')
             else:
                 ax.imshow(img)
 

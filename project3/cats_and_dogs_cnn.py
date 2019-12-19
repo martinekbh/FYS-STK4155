@@ -148,7 +148,7 @@ def fitCNN(batch_size=64, epochs=15):
 
 def loopOverLayers(num_layers, batch_size=64, epochs=30, start_num_layers=0):
     """ Function that evaluates and plots the performance of CNNs with different
-        number of hidden Conv2D and MaxPooling2D layers """
+    """
 
     print("\n\n Looping over the number of layers...")
     acc = []
@@ -242,7 +242,7 @@ def loopOverLayers(num_layers, batch_size=64, epochs=30, start_num_layers=0):
     return fitted_models
    
 
-def loopOverBatchsize(batchsizes, epochs=20):
+def loopOverBatchsize(batch_sizes, epochs=35):
     """ Function that evaluates and plots the performance of CNNs (on the cats and dogs data)
         with different batch sizes """
 
@@ -256,6 +256,7 @@ def loopOverBatchsize(batchsizes, epochs=20):
 
 
     for batch_size in batch_sizes:
+        print(f"Build NeuralNetwork model with batch size {batch_size}...")
         model = tf.keras.Sequential()
         model.add(Conv2D(32, (3,3), padding='same', activation='relu', input_shape=image_shape))
         model.add(MaxPooling2D((2,2)))
@@ -269,9 +270,7 @@ def loopOverBatchsize(batchsizes, epochs=20):
         model.add(Flatten())
         model.add(Dense(128, activation='relu'))
         model.add(Dense(1, activation='sigmoid'))
-
         """
-        print(f"Build NeuralNetwork model...")
         # Build Convoluted Neural Network
         model = tf.keras.Sequential([
             Conv2D(28, 1, padding='same', activation='relu', input_shape=image_shape),
@@ -317,7 +316,7 @@ def loopOverBatchsize(batchsizes, epochs=20):
     print(f"Max test accuracy: {np.max(val_acc)} with batch size {batch_sizes[max_valacc_ind]}")
     print(f"Max train accuracy: {np.max(acc)} with  batch size {batch_sizes[max_acc_ind]}")
     print(f"Min test loss: {np.min(val_loss)} with batch size {batch_sizes[min_valloss_ind]}")
-    print(f"Min train loss: {np.min(loss)} with batch size{batch_sizes[min_loss_ind]}")
+    print(f"Min train loss: {np.min(loss)} with batch size {batch_sizes[min_loss_ind]}")
 
     print("\a") # Alert the programmer that the function is almost done
 
@@ -350,13 +349,95 @@ def loopOverBatchsize(batchsizes, epochs=20):
 
     return fitted_models
 
+def fitBestCNN(batch_size=40, epochs=30):
+    """ Fits a CNN with 5 hidden convolution layers, batch size 40, 
+        and 30 epochs on the dataset """
+    print("\nFit CNN with batch size {batch_size} and {epochs} epochs")
+    start_time = time.time()
+
+    # Make CNN model
+    model = tf.keras.Sequential()
+    model.add(Conv2D(32, (3,3), padding='same', activation='relu', input_shape=image_shape))
+    model.add(MaxPooling2D((2,2)))
+
+    # Add hidden layers
+    for k in range(5):  # add 5 hidden convolution layers
+        model.add(tf.keras.layers.Conv2D(32, (3,3), padding='same', activation='relu'))
+        model.add(tf.keras.layers.MaxPooling2D((2,2)))
+
+    # Output layers 
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu'))
+    model.add(Dense(1, activation='sigmoid'))
+
+    # Compile model
+    model.compile(optimizer='adam',
+                  loss='binary_crossentropy',
+                  metrics=['accuracy'])
+    model.summary()     # print model summary
+
+    # Fit the model on training data
+    history = model.fit(x_train, y_train,
+                        batch_size = batch_size,
+                        epochs = epochs,
+                        validation_data = (x_test, y_test))
+    stop_time = time.time()
+    computing_time = stop_time - start_time
+    print(f"\n------------------\nCNN COMPUTING TIME: {computing_time}")
+
+    """ Evaluates a given model and produces plots """
+    results = model.evaluate(x_test, y_test)
+    print(results)
+
+    # Results
+    acc = history.history['accuracy']
+    val_acc = history.history['val_accuracy']
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    epochs_range = range(len(acc))
+
+    
+    # Plot training/test accuracy and loss (error)
+    plt.figure(figsize=(8, 8))
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_range, acc, label='Training Accuracy')
+    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+    plt.legend(loc='lower right')
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Accuracy")
+    plt.title('Training and Validation Accuracy')
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_range, loss, label='Training Loss')
+    plt.plot(epochs_range, val_loss, label='Validation Loss')
+    plt.legend(loc='upper right')
+    plt.xlabel("Number of epochs")
+    plt.ylabel("Loss")
+    plt.title('Training and Validation Loss')
+    save_fig("cnn_train_test_score_best_model_CD", folder=folder, extension='pdf')
+    save_fig("cnn_train_test_score_best_model_CD", folder=folder, extension='png')
+    plt.show()
+
+    # Make predictions of the test/validation images
+    pred = model.predict_classes(x_test)
+    print(pred[:10])
+    print(y_test[:10])
+
+    # Make confusion matrix
+    con_matr = confusionMatrix(pred, y_test, 
+            figurename="cnn_confusion_matrix_best_model_CD", folder=folder, show=True)
+
+    # Display some of the misclassified images
+    plotMisclassifiedImages(y_test, x_test, pred.ravel(), 
+            figurename="sample_misclassified_images_best_model_CD", folder=folder, rgb=True, show=True)
+
+    return pred
+
 
 if __name__ == '__main__':
     #model, history = fitCNN()
     #pred = evaluateModel(model, history)
     #fitCNN()
-    fitted_models_layers = loopOverLayers(7)
-
-
-    #fitted_models_batchsize = loopOverBatchsize([2, 16, 62, 64])
+    #fitted_models_layers = loopOverLayers(7)
+    #fitted_models_batchsize = loopOverBatchsize([30, 40, 50, 60])
+    fitBestCNN(epochs=35)
 
