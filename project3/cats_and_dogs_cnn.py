@@ -17,6 +17,8 @@ from skimage.color import rgb2gray
 folder = "cats_and_dogs"
 
 # load data
+# if these .npy files are not present, you must run the file
+# cats_and_dogs_generate_data.py first. It will create the files
 print("Loading data (cats and dogs)...")
 x_train_cats = np.load('data/cats_train_images.npy')
 y_train_cats = np.load('data/cats_train_categories.npy')
@@ -270,20 +272,6 @@ def loopOverBatchsize(batch_sizes, epochs=35):
         model.add(Flatten())
         model.add(Dense(128, activation='relu'))
         model.add(Dense(1, activation='sigmoid'))
-        """
-        # Build Convoluted Neural Network
-        model = tf.keras.Sequential([
-            Conv2D(28, 1, padding='same', activation='relu', input_shape=image_shape),
-            MaxPooling2D(),
-            Conv2D(32, 1, padding='same', activation='relu'),
-            MaxPooling2D(),
-            Conv2D(64, 1, padding='same', activation='relu'),
-            MaxPooling2D(),
-            Flatten(),
-            Dense(128, activation='relu'),
-            Dense(1, activation='sigmoid')
-        ])
-        """
         # Compile model
         model.compile(optimizer='adam',
                       loss='binary_crossentropy',

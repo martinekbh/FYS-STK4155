@@ -33,15 +33,6 @@ def sample_images():
     sample_training_images = x_train[sample_training_images]
     plotImages(sample_training_images, folder=folder, rgb = False)
 
-"""
-# Visualise the number with index 111
-image_index = 111
-plt.imshow(x_train[image_index], cmap='Greys')
-plt.title(f"Example of handwritten {y_train[image_index]}")
-save_fig("example_image", folder="mnist", extension="pdf")
-save_fig("example_image", folder="mnist", extension="png")
-plt.show()
-"""
 
 # Reshaping the array to 4-dims so that it can work with the Keras API
 IMG_HEIGHT = x_train[0].shape[0]
@@ -59,13 +50,13 @@ def fitCNN(batch_size=32, epochs=18):
     model = tf.keras.Sequential([
         Conv2D(28, kernel_size = (3,3), padding='same', activation='relu', input_shape=image_shape),
         MaxPooling2D(pool_size=(2,2)),
-        #Conv2D(32, 1, padding='same', activation='relu'),
-        #MaxPooling2D(),
-        #Conv2D(64, kernel_size=(3,3), padding='same', activation='relu'),
-        #MaxPooling2D(),
+        Conv2D(32, 1, padding='same', activation='relu'),
+        MaxPooling2D(),
+        Conv2D(64, kernel_size=(3,3), padding='same', activation='relu'),
+        MaxPooling2D(),
         Flatten(),
-        #Dense(512, activation='relu'),
-        Dense(128, activation='relu'),
+        Dense(512, activation='relu'),
+        #Dense(128, activation='relu'),
         Dropout(0.2),
         Dense(10, activation='softmax')
     ])

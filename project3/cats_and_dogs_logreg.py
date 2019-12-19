@@ -16,7 +16,12 @@ loss = categorical_crossentropy     # Loss function
 
 folder = "cats_and_dogs_logreg"
 
-# load data
+# load data...
+# if these .npy files are not in your directory, you must run the file
+# cats_and_dogs_generate_data.py first. It will create the files.
+# This is done because these .npy files were too big to upload to github
+# therefore, we instead uploaded all the individual images, as well as the
+# file that generates these .npy files from the original images.
 print("Loading data (cats and dogs)...")
 x_train_cats = np.load('data/cats_train_images.npy')
 y_train_cats = np.load('data/cats_train_categories.npy')
