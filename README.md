@@ -1,6 +1,6 @@
 # FYS-STK4155
 This repository contains projects completed for the course FYS-STK4155 (Applied data analysis and machine learning) at the university of Oslo. Collaborators on the projects are Martine Tan, Aram Salihi, and Andras Philip Playan.
-All projects were done using Python and the scikit-learn library. In project 3, we also used Tensorflow.
+All projects were done using Python and the scikit-learn library. In project 3, we also used Tensorflow to train Concolutional Neural Networks.
 
 ## List of projects
 
